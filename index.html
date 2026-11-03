@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Spelcafé</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Bungee&display=swap">
+<style>
+/* Layout: een stad bij schemering. Links het bord, rechts het dashboard van de tuk-tuk. */
+:root{
+  color-scheme:dark;
+  --dusk:#1b1839;
+  --dusk-2:#262252;
+  --dusk-3:#352f6b;
+  --line:#4c4590;
+  --ink:#f7f3ff;
+  --muted:#b9b2dd;
+  --taxi:#ffc61e;
+  --taxi-ink:#241a00;
+  --tuk:#7a5cf0;
+  --stop:#e0303a;
+  --go:#2fb673;
+  --road:#3a3850;
+  --road-line:#e8e2ff;
+  --block:#2c5a4c;
+  --kans:#ff8a1f;
+  --f-sign:"Bungee","Arial Black",Impact,sans-serif;
+  --f-body:"Barlow","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --f-label:"Barlow Condensed","Arial Narrow","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--dusk);color:var(--ink);font:500 16px/1.4 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 20px}
+h1,h2,h3,p{margin:0}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--taxi);outline-offset:2px}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:12px 10px;max-width:1240px;margin-inline:auto}
+.brand{font:400 clamp(22px,4vw,30px)/1 var(--f-sign);color:var(--taxi);letter-spacing:.01em}
+.brand span{color:var(--ink)}
+.tag{font:600 14px/1.1 var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:right}
+.checker{height:14px;max-width:1240px;margin:0 auto 12px;border-radius:2px;
+  background:conic-gradient(#111 25%,var(--taxi) 0 50%,#111 0 75%,var(--taxi) 0) 0 0/14px 14px}
+
+.app{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;max-width:1240px;margin-inline:auto;align-items:start}
+.boardbox{position:relative;min-width:0}
+.boardwrap{min-width:0;overflow:auto;max-height:calc(100dvh - 100px);border-radius:8px;background:#2b4a48;overscroll-behavior:contain}
+#board.near{width:1700px;max-width:none}
+.zoom{position:absolute;z-index:5;top:8px;right:8px;border:0;border-radius:6px;padding:8px 11px;background:var(--dusk);color:var(--ink);font:700 15px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase}
+#board{display:block;width:100%;max-width:calc(100dvh - 100px);min-width:0;height:auto;margin-inline:auto;background:#2b3a55;touch-action:manipulation;user-select:none}
+.side{min-width:0;display:grid;gap:14px}
+
+.plate{background:var(--dusk-2);border:1px solid var(--line);border-radius:8px;padding:14px}
+.plate h2{font:700 15px/1.1 var(--f-label);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.lead{font:400 25px/1.05 var(--f-sign);text-wrap:balance}
+.turn{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.dot{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid rgba(255,255,255,.75)}
+.hint{color:var(--muted);font-size:15px;min-height:42px}
+.hint b{color:var(--ink)}
+.signpreview{display:flex;gap:12px;align-items:center;margin-top:8px}
+.signpreview svg{flex:none;width:58px;height:58px}
+.signpreview strong{display:block}
+.signpreview small{color:var(--muted);font-size:14px;line-height:1.3;display:block}
+
+.btn{display:block;width:100%;border:0;border-radius:8px;padding:14px 16px;background:var(--taxi);color:var(--taxi-ink);font:400 18px/1 var(--f-sign);transition:transform .08s}
+.btn:active{transform:translateY(2px)}
+.btn[disabled]{background:var(--dusk-3);color:var(--muted);cursor:not-allowed}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line);font:700 17px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase}
+.action{display:flex;gap:12px;align-items:stretch;margin-top:10px}
+.action .btn{flex:1;min-width:0}
+.die{flex:none;width:54px;height:54px;border-radius:9px;display:grid;place-items:center;font:400 30px/1 var(--f-sign);background:var(--dusk-3);color:var(--muted)}
+.die.c-r{background:var(--stop);color:#fff}
+.die.c-y{background:var(--taxi);color:var(--taxi-ink)}
+.die.c-g{background:var(--go);color:#06281a}
+
+.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tbl th{font:600 13px/1 var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:right;padding:0 0 6px 8px}
+.tbl th:first-child{text-align:left;padding-left:0}
+.tbl td{padding:6px 0 6px 8px;border-top:1px solid var(--line);text-align:right;font-weight:600}
+.tbl td:first-child{text-align:left;padding-left:0}
+.who{display:flex;align-items:center;gap:8px;min-width:0}
+.who span:last-child{overflow-wrap:anywhere}
+.tbl tr.now td{color:var(--taxi)}
+.car{display:block;font:500 13px/1.2 var(--f-body);color:var(--muted)}
+
+.rules{display:grid;gap:6px;font-size:15px}
+.rules div{border-left:4px solid var(--kans);padding-left:9px}
+.log{display:grid;gap:4px;font-size:14px;color:var(--muted);min-height:20px}
+
+details{border-top:1px solid var(--line);padding-block:8px}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font:700 15px/1.2 var(--f-label);letter-spacing:.08em;text-transform:uppercase}
+.legend{display:grid;gap:9px;margin-top:10px}
+.legend div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:9px;align-items:center;font-size:14px;line-height:1.3}
+.legend svg{width:34px;height:34px}
+.legend b{display:block}
+.helptext{margin-top:8px;font-size:15px;color:var(--muted);display:grid;gap:6px}
+
+.field{display:grid;gap:4px}
+.field label{font:600 14px/1 var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{width:100%;min-width:0;background:var(--dusk);border:1px solid var(--line);border-radius:6px;padding:9px 10px}
+.names{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stack{display:grid;gap:12px}
+.small{font-size:14px;line-height:1.35;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:flex-end}
+.row .field{flex:1;min-width:0}
+.row .btn{width:auto;flex:none;padding:11px 14px}
+.code{font:400 22px/1 var(--f-sign);color:var(--taxi);letter-spacing:.08em}
+
+.overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:rgba(14,11,38,.78);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.card{width:min(100%,380px);border-radius:14px;background:#fff8e6;color:#241a00;overflow:hidden;box-shadow:0 18px 50px rgba(0,0,0,.5);animation:deal .28s ease-out}
+.card header{padding:12px 16px;font:400 15px/1 var(--f-sign);display:flex;justify-content:space-between;gap:10px;background:var(--kans);color:#2b1400}
+.card.k-drink header{background:var(--stop);color:#fff}
+.card.k-pax header{background:var(--tuk);color:#fff}
+.card.k-info header{background:#1565c0;color:#fff}
+.card.k-win header{background:var(--taxi);color:var(--taxi-ink)}
+.card .body{padding:18px 16px 16px;display:grid;gap:12px}
+.card h3{font:400 25px/1.08 var(--f-sign);text-wrap:balance}
+.card p{font-size:17px;line-height:1.35}
+.sips{display:flex;align-items:center;gap:12px;background:#ffe9b0;border-radius:8px;padding:9px 12px;font-weight:700}
+.sips b{font:400 32px/1 var(--f-sign)}
+.card .btn{background:#241a00;color:#ffc61e}
+.card .btn[disabled]{background:#d7cdb2;color:#6a5f3f}
+.picks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.picks button{border:2px solid #241a00;background:transparent;color:#241a00;border-radius:8px;padding:11px 8px;font-weight:700;overflow-wrap:anywhere}
+.picks button[disabled]{opacity:.35;cursor:not-allowed}
+.picks button em{font-style:normal;display:block;font-size:13px;font-weight:600}
+@keyframes deal{from{transform:translateY(16px) rotate(-2deg)}to{transform:none}}
+
+.cell{fill:transparent}
+.cell.sel{fill:rgba(255,198,30,.55);stroke:var(--taxi);stroke-width:6;cursor:pointer;animation:pulse 1s infinite alternate}
+.cell.rem{fill:rgba(224,48,58,.4);stroke:var(--stop);stroke-width:6;cursor:pointer}
+@keyframes pulse{from{fill-opacity:.45}to{fill-opacity:1}}
+.taxi{transition:transform .22s ease-in-out}
+.taxi .rot{transition:transform .16s}
+.t-sign{font-family:var(--f-sign)}
+.t-label{font-family:var(--f-label);font-weight:700;letter-spacing:.06em}
+@media (prefers-reduced-motion:reduce){.taxi,.taxi .rot,.card{transition:none;animation:none}.cell.sel{animation:none}}
+
+.brandbtn{all:unset;cursor:pointer;display:block}
+.brandbtn:focus-visible{outline:3px solid var(--taxi);outline-offset:2px}
+.back{flex:none;border:1px solid var(--line);background:transparent;border-radius:6px;padding:7px 11px;font:700 15px/1 var(--f-label);letter-spacing:.06em;text-transform:uppercase}
+.menu{max-width:1240px;margin-inline:auto;display:grid;gap:14px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1px solid var(--line);background:transparent;border-radius:6px;padding:8px 12px;font:700 15px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase}
+.chip[aria-pressed="true"]{background:var(--taxi);border-color:var(--taxi);color:var(--taxi-ink)}
+.search{flex:1 1 200px;min-width:0;background:var(--dusk-2);border:1px solid var(--line);border-radius:6px;padding:8px 11px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.tile{display:flex;flex-direction:column;min-width:0;background:var(--dusk-2);border:1px solid var(--line);border-radius:8px;overflow:hidden;text-align:left;padding:0;color:inherit}
+button.tile:hover{border-color:var(--taxi)}
+.tile .art{aspect-ratio:16/9;max-width:100%;display:grid;place-items:center;background:var(--dusk-3);font:400 64px/1 var(--f-sign);color:var(--muted)}
+.tile .art svg{display:block;width:100%;height:100%}
+.tile .info{padding:12px 14px 14px;display:grid;gap:6px;flex:1;align-content:start}
+.tile h2{font:400 20px/1.1 var(--f-sign)}
+.tile p{font-size:15px;color:var(--muted);line-height:1.3}
+.tile .meta{display:flex;justify-content:space-between;gap:8px;font:600 14px/1.1 var(--f-label);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.tile .play{color:var(--taxi)}
+.tile.soon .art,.tile.soon h2{opacity:.6}
+.empty{color:var(--muted)}
+.trackwrap{min-width:0}
+#track{display:block;width:100%;height:auto;border-radius:8px;background:#2f8f52}
+.rh{transition:transform .45s ease-in-out}
+.running .hs{animation:bob .17s infinite alternate}
+.leg{transform-box:fill-box;transform-origin:50% 0}
+.running .leg.a{animation:kick .17s infinite alternate}
+.running .leg.b{animation:kick .17s infinite alternate-reverse}
+@keyframes kick{from{transform:rotate(28deg)}to{transform:rotate(-28deg)}}
+@keyframes bob{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+.betrow{display:grid;grid-template-columns:minmax(0,1fr) auto 54px;gap:6px;align-items:center}
+.betrow input,.betrow select{width:100%;min-width:0;background:var(--dusk);border:1px solid var(--line);border-radius:6px;padding:8px}
+.horsepick{display:flex;gap:3px}
+.horsepick button{border:2px solid transparent;background:transparent;border-radius:50%;padding:0;width:32px;height:32px;opacity:.45}
+.horsepick button[aria-pressed="true"]{border-color:var(--ink);opacity:1}
+.horsepick svg{display:block;width:100%;height:100%}
+.legendh{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;font-size:14px;color:var(--muted)}
+.legendh span{display:flex;align-items:center;gap:6px}
+.legendh svg{width:18px;height:18px;flex:none}
+.callout{font:400 19px/1.2 var(--f-sign);min-height:70px}
+.autobtn{flex:0 0 42%}
+@media (prefers-reduced-motion:reduce){.rh{transition:none}.running .hs,.running .leg.a,.running .leg.b{animation:none}}
+
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr);gap:14px}
+  #board{max-width:min(100%,640px)}
+  .boardwrap{max-height:62dvh}
+  #board.near{width:1250px}
+  .tag{display:none}
+  .lead{font-size:22px}
+  .hint{min-height:0}
+}
+</style>
+
+<div class="top">
+  <button class="brandbtn" id="home"><h1 class="brand" id="brand">Spel<span>café</span></h1></button>
+  <button class="back" id="back" hidden>Alle spellen</button>
+  <div class="tag" id="tag">Kies een spel en schenk in</div>
+</div>
+<div class="checker" aria-hidden="true"></div>
+
+<section class="menu" id="menu" aria-label="Spellen">
+  <div class="tools">
+    <input class="search" id="search" type="search" placeholder="Zoek een spel" aria-label="Zoek een spel">
+    <div class="tools" id="chips"></div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <p class="empty" id="empty" hidden>Geen spel gevonden. Probeer een andere zoekterm.</p>
+</section>
+
+<div id="race" hidden>
+  <div class="app">
+    <div class="trackwrap"><svg id="track" viewBox="0 0 1000 620" role="img" aria-label="Renbaan met vier paarden en zeven hindernissen"></svg></div>
+    <div class="side" id="raceside"></div>
+  </div>
+  <div id="rmodal"></div>
+</div>
+
+<div id="game" hidden>
+  <div class="app">
+    <div class="boardbox"><button class="zoom" id="zoom">Hele kaart</button><div class="boardwrap" id="wrap"><svg id="board" class="near" viewBox="-420 -420 2140 2140" role="img" aria-label="Spelkaart van Gent met straten, verkeerslichten en bekende plekken"></svg></div></div>
+    <div class="side" id="side"></div>
+  </div>
+  <div id="modal"></div>
+</div>
+
+<script>
+/* ---------- vaste gegevens ---------- */
+/* De stad: een echte wegenkaart van Gent als graaf. Noorden boven, posities bij benadering. */
+const J={gr:[455,255],vr:[800,215],ko:[470,470],be:[715,455],ku:[600,665],zu:[940,610],vo:[770,800],ro:[440,760],ov:[620,985],ow:[375,960],sp:[865,1050],cw:[190,640],
+  h0:[95,1225],h1:[1215,300],h2:[830,55],h3:[640,1245],h4:[55,425],h5:[1225,965],
+  a1:[-120,-120],a2:[830,-230],a3:[1500,120],a4:[1520,980],a5:[900,1560],a6:[-150,1500],a7:[-300,800],
+  k0:[-310,1640],k1:[1640,-270],k2:[560,-350],k3:[1120,1650],k4:[-350,420],k5:[1650,1240]};
+const STREETS=[['gr','vr',630,140,4],['gr','ko',400,360,2],['ko','be',590,430,2],['vr','be',795,340,2],['be','ku',690,570,2],['ko','ku',505,570,2],
+ ['be','zu',860,490,3],['ku','vo',680,745,2],['ku','ro',520,725,1],['ro','vo',600,775,3],['zu','vo',900,760,3],['vo','ov',715,895,2],['ro','ow',385,860,2],
+ ['ow','ov',500,1015,2],['ov','sp',750,1045,2],['sp','vo',835,925,3],['cw','ko',330,510,3],['cw','ro',300,730,3],['cw','gr',165,395,5],['h4','cw',95,530,2],
+ ['ow','h0',235,1095,4],['ov','h3',640,1120,2],['sp','h3',785,1170,2],['zu','h1',1095,425,4],['vr','h1',1010,225,4],['vr','h2',790,130,1],['zu','h5',1110,760,4],['sp','h5',1050,1075,4],
+ ['a1','a2',350,-340,10],['a2','a3',1230,-270,8],['a3','a4',1660,550,9],['a4','a5',1420,1500,10],['a5','a6',380,1680,11],['a6','a7',-390,1180,8],['a7','a1',-330,320,10],
+ ['h4','a1',-70,150,5],['h2','a2',830,-90,2],['h1','a3',1350,220,2],['h5','a4',1370,985,2],['h3','a5',730,1430,3],['h0','a6',-20,1370,3],['cw','a7',-60,720,5],
+ ['a6','k0',-250,1590,1],['a3','k1',1590,-90,3],['a1','k2',200,-330,0],['a5','k3',1020,1630,1],['a7','k4',-370,600,3],['a4','k5',1610,1120,2]];
+const NODES=[],ADJ=[],nid={};
+const addNode=(x,y)=>{NODES.push({x:Math.round(x),y:Math.round(y)});ADJ.push([]);return NODES.length-1};
+const link=(a,b)=>{ADJ[a].push(b);ADJ[b].push(a)};
+for(const k in J)nid[k]=addNode(...J[k]);
+for(const[a,b,cx,cy,n]of STREETS){
+  let prev=nid[a];const A=J[a],B=J[b];
+  for(let i=1;i<=n;i++){const t=i/(n+1),u=1-t,m=addNode(u*u*A[0]+2*u*t*cx+t*t*B[0],u*u*A[1]+2*u*t*cy+t*t*B[1]);link(prev,m);prev=m}
+  link(prev,nid[b]);
+}
+const ROADS=NODES.map((_,i)=>i), nbrs=i=>ADJ[i];
+const DIST=ROADS.map(s=>{const d=ROADS.map(()=>1e9);d[s]=0;const q=[s];for(const u of q)for(const v of ADJ[u])if(d[v]>d[u]+1){d[v]=d[u]+1;q.push(v)}return d});
+const dist=(a,b)=>DIST[a][b];
+const LIGHTS=['ko','ku','zu','vo','ov'].map(k=>nid[k]);
+const STOPS=['k0','k1','k2','k3','k4','k5'].map(k=>nid[k]);
+const near=(x,y,used)=>ROADS.filter(i=>ADJ[i].length===2&&!STOPS.includes(i)&&!used.includes(i)).sort((a,b)=>Math.hypot(NODES[a].x-x,NODES[a].y-y)-Math.hypot(NODES[b].x-x,NODES[b].y-y))[0];
+const taken=[];
+const claim=(x,y)=>{const n=near(x,y,taken);taken.push(n);return n};
+const LANDMARKS=[['Gravensteen',560,180],['Graslei',440,390],['Belfort',650,440],['Sint-Baafs',850,490],['Vrijdagmarkt',900,230],['Kouter',560,610],['Krook',800,560],['Vooruit',860,740],
+ ['Boekentoren',600,780],['Overpoort',500,1000],['Sint-Pietersabdij',1000,800],['Citadelpark',330,800],['Sint-Pietersstation',230,1090],['Campus Sterre',760,1160],['Rabot',-60,120],['Dok Noord',1150,-260],['Portus Ganda',1620,480],['Zuidpark',1300,970],['Stadion KAA Gent',1320,1370],['Flanders Expo',420,1650],['UZ Gent',-10,1370],['Blaarmeersen',-190,760],['Bijloke',40,690]].map(([n,x,y])=>({n,c:claim(x,y)}));
+const GARAGE=[claim(1100,240),claim(170,500),claim(1500,1300),claim(-340,1000)], FUEL=[claim(700,890),claim(590,160),claim(700,1400),claim(-330,250)];
+const KANS=[[250,300],[1110,450],[120,560],[1185,1000],[710,1040],[700,720],[300,640],[1130,770],[420,1040],[300,-320],[1500,-120],[1640,700],[1100,1520],[150,1640],[-330,1280],[-200,-20],[830,-120]].map(([x,y])=>claim(x,y));
+const JUNCTIONS=ROADS.filter(i=>ADJ[i].length>=3&&!LIGHTS.includes(i)&&!STOPS.includes(i));
+const COLORS=['#ffc61e','#7a5cf0','#18b7a6','#ff6b4a','#8ed13f','#f2f2f7'];
+const COLORNAMES=['geel','paars','turkoois','koraal','limoen','wit'];
+
+const SIGNS={
+  G:{n:'Slipgevaar',d:'Rij je erover, dan verlies je 1 stap.',c:3},
+  W:{n:'Let op: zebrapad',d:'Rij je erover, dan verlies je 1 stap.',c:3},
+  B:{n:'Parkeerverbod',d:'Eindig je hier, dan gooi je opnieuw en rij je door.',c:3},
+  N:{n:'Stilstaan verboden',d:'Eindig je hier, dan rij je meteen 5 stappen door.',c:3},
+  Z:{n:'Zebrapad',d:'Je stopt ervoor. Volgende beurt mag je erover.',c:3},
+  S:{n:'Stop',d:'Je stopt ervoor. Volgende beurt mag je erover.',c:4},
+  4:{n:'Maximum 40',d:'Hier voorbij mag je geen 5de of 6de stap zetten.',c:3},
+  X:{n:'Verboden richting',d:'Niemand mag op dit vak rijden.',c:2},
+  L:{n:'Verplicht links',d:'Alleen op kruispunten. Wie hier komt, moet linksaf.',c:2},
+  R:{n:'Verplicht rechts',d:'Alleen op kruispunten. Wie hier komt, moet rechtsaf.',c:2}
+};
+const ACTIONS={
+  M:{n:'Getakeld',d:'Je tuk-tuk gaat naar het depot. Je beurt stopt en je slaat de volgende over.',c:3},
+  T:{n:'Nachtwinkel',d:'Je rijdt naar de nachtwinkel. Je beurt stopt en je drinkt wat je kocht.',c:3},
+  P:{n:'Politie',d:'Leg op de weg. Wie erlangs rijdt met een 5 of 6 moet terug naar het eigen kot.',c:3},
+  D:{n:'Bord weg',d:'Haal een bord naar keuze van de straat.',c:4}
+};
+const KANS_IN_DECK=26;
+
+/* Passagiers: pick = slokken bij instappen, each = per beurt aan boord, speed = stappen extra,
+   give = uitdelen bij afzetten, all = iedereen drinkt bij afzetten */
+const PAX=[
+ {n:'De kotmadam',x:'Wil weten waarom je zo laat thuiskomt. Elke beurt aan boord drink je 1 slok.',each:1,give:3},
+ {n:'De schacht',x:'Moet van zijn praeses trakteren: bij het afzetten geeft hij een rondje van 1 slok.',all:1},
+ {n:'De professor emeritus',x:'Wil niet gehaast worden. Elke worp 1 stap minder, maar de fooi is groot.',speed:-1,give:4},
+ {n:'De Erasmusstudent',x:'Kent de stad niet, wel de weg naar de Overpoort. Elke worp 1 stap meer.',speed:1,give:2},
+ {n:'De DJ',x:'Moet om middernacht draaien in de Vooruit. Bij aankomst klinkt iedereen.',speed:1,all:2},
+ {n:'De praeses',x:'Stapt in met een pint in de hand. Instappen kost je 2 slokken, afzetten levert veel op.',pick:2,give:4},
+ {n:'De pastoor van Sint-Pieters',x:'Geeft zijn zegen. Bij het afzetten deel je 3 slokken uit.',give:3},
+ {n:'De frituurbaas',x:'Ruikt naar vet en goed nieuws. Bij aankomst drinkt iedereen 1 slok.',all:1},
+ {n:'De toerist met cuberdons',x:'Wil aan elke brug een foto. Elke worp 1 stap minder.',speed:-1,give:3},
+ {n:'De bomma van Ledeberg',x:'Vertelt de hele rit over vroeger. Elke beurt aan boord drink je 1 slok.',each:1,give:3},
+ {n:'De tramchauffeur',x:'Heeft vrijaf en kent alle sluipwegen. Elke worp 1 stap meer.',speed:1,give:1},
+ {n:'De kotgenoot',x:'Rijdt mee voor de gezelligheid. Instappen kost je 1 slok.',pick:1,give:2}
+];
+
+/* Kanskaarten. t: me, all, others, give, loser, talk, rule, water, boost, green, skip, swap, steal, home */
+const CARDS=[
+ ['me','Zonder lichten naar de BDA','{cur} fietste zonder lichten naar de BDA en reed zo de controle op de Kouter in.',2],
+ ['me','Wiel in de tramsporen','In de Veldstraat bleef je voorwiel in de tramsporen steken. De hele terrasrij zag het.',2],
+ ['me','Fiets niet op slot','Vijf minuten aan de Boekentoren, fiets weg. Zo gaat dat in Gent.',2],
+ ['me','Te laat in de Blandijn','Les om half negen, wakker om half negen. Je komt binnen terwijl de prof zwijgt.',1],
+ ['me','Vast in het circulatieplan','Je reed drie keer rond dezelfde knip omdat je gps het circulatieplan niet kent.',2],
+ ['me','Oude diesel in de LEZ','Met de auto van je ouders de lage-emissiezone ingereden. De brief komt per post.',2],
+ ['me','Laatste trein gemist','Op Gent-Sint-Pieters zag je de achterlichten van je trein verdwijnen.',1],
+ ['me','Friet op de Overpoort','Je pakje friet ligt op straat. De duiven zijn blij.',1],
+ ['all','Rondje in de Overpoort','Iemand heeft het laatste examen gehaald. Iedereen klinkt.',2],
+ ['all','Gentse Feesten','Tien dagen feest op één kaart. Iedereen drinkt.',2],
+ ['all','Terras op de Graslei','De zon staat erop en niemand heeft nog les.',1],
+ ['others','Blokken in de Boekentoren','Iedereen behalve {cur} zit in de blokperiode en drinkt uit frustratie.',2],
+ ['others','Geen tram aan de Zuid','De tram komt niet. Iedereen behalve {cur} wacht en drinkt.',1],
+ ['water','Infocoach in de Overpoort','Een infocoach vraagt hoe het gaat. Iedereen drinkt nu een glas water.',0],
+ ['give','Samenvatting gedeeld','Jouw samenvatting redde het hele jaar. {cur} deelt {n} slokken uit.',3],
+ ['give','Fiets teruggevonden','Je fiets stond gewoon aan de Sint-Pietersabdij. {cur} deelt {n} slokken uit.',2],
+ ['give','Geslaagd in tweede zit','De puntenlijst is binnen. {cur} deelt {n} slokken uit.',3],
+ ['loser','Gentse pleinen','Noem om de beurt een plein of straat in Gent, te beginnen bij {cur}. Wie stokt of herhaalt, drinkt {n}.',3],
+ ['loser','Faculteiten','Noem om de beurt een richting aan de UGent, te beginnen bij {cur}. Wie stokt, drinkt {n}.',3],
+ ['loser','Controle aan de Kouter','De agent vraagt iedereen om op één been te staan. Wie eerst wankelt, drinkt {n}.',2],
+ ['loser','Tram komt eraan','Iedereen springt recht. Wie als laatste staat, drinkt {n}.',2],
+ ['loser','Stille studiezaal','Kijk elkaar aan en blijf ernstig. Wie eerst lacht, drinkt {n}.',2],
+ ['loser','Cantus','{cur} zet een lied in. Wie de tekst niet kent, drinkt {n}.',2],
+ ['talk','In de Leie','Wie ooit iets in de Leie liet vallen, drinkt {n}.',1],
+ ['talk','Citadelpark','Wie ooit na een avond uit in het Citadelpark belandde, drinkt {n}.',1],
+ ['talk','Herexamen','Wie dit jaar een herexamen heeft, drinkt {n}.',2],
+ ['talk','Kot vergeten','Wie ooit de sleutel van het kot vergat en moest aanbellen, drinkt {n}.',1],
+ ['rule','Praeses','{cur} is praeses tot de volgende beurt. Wie zonder toestemming praat, drinkt 1 slok.'],
+ ['rule','Geen Antwerpen','Tot de volgende beurt van {cur} zegt niemand "Antwerpen". Per fout 1 slok.'],
+ ['rule','Linkerhand','Tot de volgende beurt van {cur} drinkt iedereen met links. Per fout 1 slok.'],
+ ['rule','Bijrijder','{cur} kiest een bijrijder. Die drinkt tot de volgende beurt van {cur} mee met {cur}.'],
+ ['boost','Elektrische deelstep','{cur} vond een deelstep aan de Krook en telt deze beurt 3 stappen bij de worp.'],
+ ['green','Groene golf op de stadsring','Alle verkeerslichten staan deze beurt op groen voor {cur}.'],
+ ['skip','Lekke band aan de Dampoort','{cur} slaat de volgende beurt over en drinkt {n} bij het plakken.',1],
+ ['swap','Verkeerde tram genomen','{cur} kiest iemand en wisselt van plaats op het bord.'],
+ ['steal','Passagier overgenomen','{cur} biedt een lagere prijs en neemt een passagier over. Lukt dat niet, dan drink je 2.'],
+ ['home','Thuisgebracht door de politie','De tuk-tuk van {cur} wordt naar het eigen kot gebracht. De passagier blijft zitten.',1]
+];
+
+/* ---------- speltoestand ---------- */
+let G=null, ME=Math.random().toString(36).slice(2,8), mySeat=-1, room=null, roomCap=null, roomCode='', peersN=0, rolling=0;
+let DELAY=250, ROLLTIME=480, autoTimer=null;
+const P=()=>G.P[G.cur];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+function newGame(names,strength,length){
+  const n=names.length, target=length==='kort'?Math.min(n,2):Math.min(Math.max(n,2),3);
+  let deck=[];
+  for(const[k,v]of Object.entries({...SIGNS,...ACTIONS}))for(let i=0;i<v.c;i++)deck.push(k);
+  for(let i=0;i<KANS_IN_DECK;i++)deck.push('K');
+  shuffle(deck);
+  const types=shuffle(PAX.map((_,i)=>i));
+  const pax=shuffle(LANDMARKS.slice()).slice(0,2*n).map((l,i)=>({c:l.c,l:l.n,s:0,o:-1,i:types[i]}));
+  G={id:Math.random().toString(36).slice(2,8),v:0,by:ME,n,cur:Math.floor(Math.random()*n),phase:'draw',str:strength,target,
+    deck:deck.join(''),di:0,kans:shuffle(CARDS.map((_,i)=>i)),ki:0,signs:{},pax,
+    P:names.map((nm,i)=>({nm,pos:STOPS[i],home:STOPS[i],pax:-1,done:0,last:0,skip:0,sips:0})),
+    roll:0,left:0,taken:0,prev:-1,path:[],green:0,bonus:0,nsu:0,rules:[],modal:null,q:[],after:'',drawn:'',turn:1,over:0,log:[]};
+  startTurn();
+}
+const sips=n=>G.str===0?Math.max(1,Math.ceil(n/2)):G.str===2?n+1:n;
+const nm=p=>G.P[p].nm;
+const note=t=>{G.log.unshift(t);G.log.length=Math.min(G.log.length,4)};
+const others=()=>G.P.map((_,i)=>i).filter(i=>i!==G.cur);
+const everyone=()=>G.P.map((_,i)=>i);
+
+function say(k,t,x,who,n){
+  const m={k,t,x};
+  if(who&&n){who.forEach(p=>G.P[p].sips+=n);m.who=who;m.n=n}
+  G.q.push(m);
+}
+function ask(k,t,x,mode,n){G.q.push({k,t,x,mode,n})}
+function flow(a){G.after=a;if(!G.modal&&G.q.length)G.modal=G.q.shift();else if(!G.modal)run(a)}
+function okModal(){G.modal=null;if(G.q.length)G.modal=G.q.shift();else run(G.after)}
+function run(a){
+  if(G.over&&G.phase!=='over')return endGame();
+  if(a==='draw')G.phase='draw';
+  else if(a==='roll')G.phase='roll';
+  else if(a==='resume')G.phase='move';
+  else if(a==='next')nextTurn();
+}
+function occupied(c){return G.P.some((p,i)=>i!==G.cur&&p.pos===c)&&c!==P().home}
+
+function startTurn(){
+  G.rules=G.rules.filter(r=>r.o!==G.cur);
+  G.green=0;G.bonus=0;G.drawn='';G.roll=0;G.left=0;G.taken=0;G.prev=-1;G.path=[];G.nsu=0;
+  const p=P();
+  if(p.skip>0){p.skip--;say('info','Beurt overgeslagen',nm(G.cur)+' staat aan de kant en kijkt toe.');return flow('next')}
+  if(p.pax>=0){const t=PAX[G.pax[p.pax].i];if(t.each)say('pax',t.n+' zit nog in de tuk-tuk','Dat kost je elke beurt iets.',[G.cur],sips(t.each))}
+  flow('draw');
+}
+function nextTurn(){
+  if(G.over||G.di>=G.deck.length)return endGame();
+  G.cur=(G.cur+1)%G.n;G.turn++;startTurn();
+}
+function checkEnd(){
+  const left=G.pax.filter(x=>x.s<2).length, top=Math.max(...G.P.map(p=>p.done));
+  if(top>=G.target||left===0)G.over=1;
+}
+function ranking(){return G.P.map((p,i)=>({...p,i})).sort((a,b)=>b.done-a.done||a.last-b.last||a.sips-b.sips)}
+function endGame(){
+  G.phase='over';G.over=1;
+  const r=ranking(),last=r[r.length-1];
+  G.P[last.i].sips+=sips(3);
+  G.modal={k:'win',t:r[0].nm+' wint de rit',x:r[0].done+' '+(r[0].done===1?'passagier':'passagiers')+' afgezet. '+r[0].nm+' deelt nog 5 slokken uit. De rest van de avond rijdt niemand meer zelf: regel een Bob of een echte taxi.',who:[last.i],n:sips(3)};
+  G.after='';
+}
+
+/* ---------- stapel ---------- */
+function connectedWithout(block){
+  const start=STOPS[0];if(block.has(start))return false;
+  const seen=new Set([start]),q=[start];
+  for(const u of q)for(const v of ADJ[u])if(!seen.has(v)&&!block.has(v)){seen.add(v);q.push(v)}
+  return seen.size===NODES.length-block.size;
+}
+function validCells(code){
+  const stops=STOPS.slice(0,G.n), wait=G.pax.filter(x=>x.s===0).map(x=>x.c);
+  const walls=Object.keys(G.signs).filter(k=>G.signs[k]==='X').map(Number);
+  return ROADS.filter(c=>{
+    if(LIGHTS.includes(c)||stops.includes(c)||GARAGE.includes(c)||FUEL.includes(c)||KANS.includes(c)||wait.includes(c))return false;
+    if(G.P.some(p=>p.pos===c))return false;
+    const jn=JUNCTIONS.includes(c);
+    if(code==='L'||code==='R')return jn;
+    if(code==='X'){
+      if(jn||nbrs(c).some(a=>stops.includes(a)))return false;
+      return connectedWithout(new Set([...walls.filter(k=>k!==c),c]));
+    }
+    return true;
+  });
+}
+function draw(){
+  const t=G.deck[G.di++];G.drawn=t;
+  if(t==='K')return drawKans('roll');
+  if(t==='M'||t==='T'){
+    const set=t==='M'?GARAGE:FUEL, free=set.filter(c=>!occupied(c)).sort((a,b)=>dist(a,P().pos)-dist(b,P().pos));
+    if(free.length)P().pos=free[0];
+    if(t==='M'){P().skip=1;say('drink','Getakeld',nm(G.cur)+' stond fout geparkeerd aan de Dampoort en haalt de tuk-tuk op in het depot. Volgende beurt overslaan.',[G.cur],sips(2))}
+    else say('drink','Nachtwinkel','Een blikje voor onderweg, drie euro voor iets dat in de winkel één euro kost. '+nm(G.cur)+' stopt hier.',[G.cur],sips(3));
+    return flow('next');
+  }
+  if(t==='D'){
+    if(!Object.keys(G.signs).length){note('Bord weg: geen borden op straat.');G.phase='roll';return}
+    G.phase='remove';return;
+  }
+  if(!validCells(t).length){G.phase='roll';return}
+  G.phase='place';
+}
+function place(c){G.signs[c]=G.drawn;note(nm(G.cur)+' legt '+(SIGNS[G.drawn]||ACTIONS[G.drawn]).n+'.');G.phase='roll'}
+function removeSign(c){const s=G.signs[c];delete G.signs[c];note(nm(G.cur)+' haalt '+(SIGNS[s]||ACTIONS[s]).n+' weg.');G.phase='roll'}
+
+function drawKans(after){
+  const card=CARDS[G.kans[G.ki++%G.kans.length]], [t,title,raw,base=0]=card;
+  const n=base?sips(base):0, x=raw.replaceAll('{cur}',nm(G.cur)).replaceAll('{n}',n);
+  const k='kans',cur=G.cur;
+  if(t==='me')say(k,title,x,[cur],n);
+  else if(t==='all')say(k,title,x,everyone(),n);
+  else if(t==='others')say(k,title,x,others(),n);
+  else if(t==='water')say(k,title,x);
+  else if(t==='give')ask(k,title,x,'give',n);
+  else if(t==='loser')ask(k,title,x,'loser',n);
+  else if(t==='talk')say(k,title,x);
+  else if(t==='rule'){say(k,title,x);G.rules.push({t:title+': '+x,o:cur})}
+  else if(t==='boost'){G.bonus=3;say(k,title,x)}
+  else if(t==='green'){G.green=1;say(k,title,x)}
+  else if(t==='skip'){P().skip=1;say(k,title,x,[cur],n)}
+  else if(t==='swap')ask(k,title,x,'swap',1);
+  else if(t==='steal'){
+    if(P().pax<0&&others().some(i=>G.P[i].pax>=0))ask(k,title,x,'steal',1);
+    else say(k,title,x,[cur],sips(2));
+  }
+  else if(t==='home'){P().pos=P().home;say(k,title,x,[cur],n)}
+  flow(after);
+}
+function pick(p){
+  const m=G.modal;
+  if(m.mode==='give'||m.mode==='loser'){
+    G.P[p].sips+=1;m.given=m.given||{};m.given[p]=(m.given[p]||0)+1;m.n--;
+    if(m.mode==='loser'&&m.n>0)return pick(p);
+    if(m.n<=0){const g=m.given;note(Object.keys(g).map(i=>nm(+i)+' +'+g[i]).join(', '));okModal()}
+    return;
+  }
+  if(m.mode==='swap'){const a=P(),b=G.P[p];[a.pos,b.pos]=[b.pos,a.pos];note(nm(G.cur)+' wisselt met '+nm(p)+'.');return okModal()}
+  if(m.mode==='steal'){
+    const b=G.P[p];P().pax=b.pax;G.pax[b.pax].o=G.cur;b.pax=-1;note(nm(G.cur)+' kaapt de passagier van '+nm(p)+'.');return okModal()
+  }
+}
+
+/* ---------- rijden ---------- */
+const lightColor=r=>r<=2?'r':(r===4||r===6)?'y':'g';
+function doRoll(){
+  const r=1+Math.floor(Math.random()*6), p=P();
+  const speed=p.pax>=0?(PAX[G.pax[p.pax].i].speed||0):0;
+  G.roll=r;G.left=Math.max(1,r+2+speed+G.bonus);G.bonus=0;G.taken=0;G.prev=-1;G.path=[];G.phase='move';
+}
+function opts(){
+  const p=P(),here=G.signs[p.pos];
+  let o=nbrs(p.pos).filter(c=>c!==G.prev&&G.signs[c]!=='X');
+  if((here==='L'||here==='R')&&G.prev>=0){
+    const a=NODES[G.prev],b=NODES[p.pos];
+    const score=c=>{const d=NODES[c],cr=(b.x-a.x)*(d.y-b.y)-(b.y-a.y)*(d.x-b.x);return here==='R'?cr:-cr};
+    const best=o.slice().sort((x,y)=>score(y)-score(x))[0];
+    if(best!==undefined&&score(best)>0)o=[best];
+  }
+  return o;
+}
+function stopBefore(msg,drink){
+  G.left=0;
+  if(drink)say('drink',msg[0],msg[1],[G.cur],sips(drink));else note(msg[1]);
+  finish();
+}
+function stepTo(c){
+  const p=P();
+  if(LIGHTS.includes(c)&&!G.green){
+    const col=lightColor(G.roll);
+    if(col==='r')return stopBefore(['Rood licht',nm(G.cur)+' gooide '+G.roll+' en staat te wachten aan de lichten.'],1);
+    if(col==='y'){
+      const allowed=Math.floor(G.roll/2);
+      if(G.taken+2>allowed||G.left<2)return stopBefore(['','Oranje licht: '+nm(G.cur)+' haalt het kruispunt niet.']);
+      G.left=Math.min(G.left,allowed-G.taken);
+    }else if(G.left<2)return stopBefore(['','Te weinig stappen om het kruispunt over te steken.']);
+  }
+  const s=G.signs[c];
+  if((s==='S'||s==='Z')&&G.taken>0)return stopBefore(['',nm(G.cur)+' stopt voor '+SIGNS[s].n+'.']);
+  if(G.left===1&&occupied(c))return stopBefore(['','Vak bezet: '+nm(G.cur)+' blijft staan.']);
+  G.prev=p.pos;p.pos=c;G.path.push(G.prev);G.left--;G.taken++;
+  if(s==='G'||s==='W'){G.left=Math.max(0,G.left-1);note(SIGNS[s].n+': 1 stap minder.')}
+  if(s==='4')G.left=Math.min(G.left,Math.max(0,4-G.taken));
+  if(s==='P'&&G.roll>=5){
+    G.left=0;p.pos=p.home;
+    if(p.pax>=0){const x=G.pax[p.pax];x.s=0;x.o=-1;p.pax=-1}
+    G.prev=-1;G.path=[];
+    say('drink','Betrapt door de politie','Te snel met een '+G.roll+'. '+nm(G.cur)+' moet terug naar het kot en een eventuele passagier stapt uit.',[G.cur],sips(3));
+    return flow('next');
+  }
+  const w=G.pax.findIndex(x=>x.s===0&&x.c===c);
+  if(p.pax<0&&w>=0&&!occupied(c)){
+    const x=G.pax[w],t=PAX[x.i];x.s=1;x.o=G.cur;p.pax=w;G.left=0;
+    say('pax',t.n+' stapt in aan '+x.l,t.x,t.pick?[G.cur]:null,t.pick?sips(t.pick):0);
+    return flow('next');
+  }
+  if(c===p.home&&p.pax>=0){
+    const x=G.pax[p.pax],t=PAX[x.i];x.s=2;x.o=-1;p.pax=-1;p.done++;p.last=G.turn;G.left=0;
+    if(t.all)say('pax',t.n+' is er','Iedereen klinkt op de rit van '+nm(G.cur)+'.',everyone(),sips(t.all));
+    if(t.give)ask('pax',t.n+' is er',nm(G.cur)+' krijgt fooi en deelt '+sips(t.give)+' slokken uit.','give',sips(t.give));
+    checkEnd();
+    return flow('next');
+  }
+  if(G.left<=0)return finish();
+  if(!opts().length){G.left=0;finish()}
+}
+function finish(){
+  const p=P();
+  G.left=0;
+  while(occupied(p.pos)&&G.path.length)p.pos=G.path.pop();
+  if(!G.taken)return flow('next');
+  const s=G.signs[p.pos];
+  if(s==='N'&&!G.nsu){
+    G.nsu=1;G.left=5;
+    say('info','Stilstaan verboden',nm(G.cur)+' moet meteen 5 stappen doorrijden.');
+    return flow('resume');
+  }
+  if(s==='B'){say('info','Parkeerverbod',nm(G.cur)+' mag hier niet blijven staan en gooit opnieuw.');return flow('roll')}
+  if(KANS.includes(p.pos))return drawKans('next');
+  flow('next');
+}
+
+/* ---------- bediening ---------- */
+const canAct=()=>G&&G.phase!=='over'&&(mySeat<0||mySeat===G.cur);
+function act(fn){if(!canAct())return;G.by=ME;fn();commit()}
+function commit(){G.v++;save();render();send();drive()}
+function drive(){
+  clearTimeout(autoTimer);
+  if(!G||G.modal||G.phase!=='move'||G.by!==ME)return;
+  const o=opts();
+  if(o.length===1)autoTimer=setTimeout(()=>act(()=>stepTo(o[0])),DELAY);
+  else if(!o.length)autoTimer=setTimeout(()=>act(()=>{G.left=0;finish()}),DELAY);
+}
+function rollClick(){
+  if(!canAct()||rolling)return;
+  rolling=1;render();
+  setTimeout(()=>{rolling=0;act(doRoll)},ROLLTIME);
+}
+function save(){try{localStorage.setItem('zatte-tuktuk-gent2',JSON.stringify(G))}catch(e){}}
+function load(){try{const s=localStorage.getItem('zatte-tuktuk-gent2');return s?JSON.parse(s):null}catch(e){return null}}
+
+/* ---------- online tafel ---------- */
+function wire(){return JSON.stringify({...G,log:[]})}
+function send(){if(room)room.emit('stand',JSON.parse(wire())).catch(()=>{})}
+async function joinRoom(code){
+  room=await roomCap.join('tt-'+code);roomCode=code;
+  room.on('stand',m=>{
+    if(m.sameTab||!m.data||!Array.isArray(m.data.P))return;
+    if(G&&m.data.id===G.id&&m.data.v<=G.v)return;
+    const log=G?G.log:[];G=m.data;G.log=log;clearTimeout(autoTimer);render();
+  });
+  room.on('vraag',m=>{if(!m.sameTab&&G)send()});
+  room.onPeers(c=>{peersN=c.peers.length;if(c.joined.some(p=>!p.isMe)&&G)send();render()});
+  room.emit('vraag',{}).catch(()=>{});
+}
+
+/* ---------- bord tekenen ---------- */
+const X=i=>NODES[i].x, Y=i=>NODES[i].y, VX=-420, VY=-420, VS=2140;
+function signSym(){
+ const tri=(inner)=>`<path d="M50 8 94 86H6Z" fill="#fff" stroke="#d3202a" stroke-width="10" stroke-linejoin="round"/>${inner}`;
+ const ped=(c)=>`<g fill="${c}"><circle cx="50" cy="38" r="6"/><path d="M45 46h10l5 16-6 2-2-7v21h-6l-1-15-4 15h-6l5-21-3 7-5-2z"/></g>`;
+ const ring=(f,inner)=>`<circle cx="50" cy="50" r="42" fill="${f}" stroke="#d3202a" stroke-width="11"/>${inner}`;
+ const green=(inner)=>`<rect x="6" y="6" width="88" height="88" rx="14" fill="#1d9a5c"/>${inner}`;
+ const arrow=(d)=>`<circle cx="50" cy="50" r="46" fill="#1565c0"/><g fill="none" stroke="#fff" stroke-width="10" stroke-linejoin="round" transform="${d}"><path d="M34 76V46c0-8 5-12 12-12h18"/><path d="M54 18 72 34 54 50" /></g>`;
+ const s={
+  G:tri(`<path d="M34 72c10-6 4-16 14-20s8-10 12-14" fill="none" stroke="#111" stroke-width="7"/><path d="M58 72c6-6 2-12 10-17" fill="none" stroke="#111" stroke-width="6"/>`),
+  W:tri(ped('#111')),
+  B:ring('#1565c0','<path d="M21 79 79 21" stroke="#d3202a" stroke-width="11"/>'),
+  N:ring('#1565c0','<path d="M21 79 79 21M21 21l58 58" stroke="#d3202a" stroke-width="11"/>'),
+  Z:`<rect x="6" y="6" width="88" height="88" rx="8" fill="#1565c0"/><path d="M50 14 88 84H12Z" fill="#fff"/>${ped('#111')}`,
+  S:`<path d="M31 5h38l26 26v38L69 95H31L5 69V31Z" fill="#d3202a" stroke="#fff" stroke-width="5"/><text x="50" y="62" text-anchor="middle" font-size="28" class="t-sign" fill="#fff">STOP</text>`,
+  4:ring('#fff','<text x="50" y="66" text-anchor="middle" font-size="44" class="t-sign" fill="#111">40</text>'),
+  X:`<circle cx="50" cy="50" r="46" fill="#d3202a"/><rect x="18" y="41" width="64" height="18" fill="#fff"/>`,
+  L:arrow('translate(100 0) scale(-1 1)'),
+  R:arrow(''),
+  M:green('<path d="M68 22a18 18 0 0 0-22 24L22 70l8 8 24-24a18 18 0 0 0 24-22L66 44l-10-10z" fill="#fff"/>'),
+  T:green('<path d="M42 16h16v14c0 6 10 10 10 22v28a6 6 0 0 1-6 6H38a6 6 0 0 1-6-6V52c0-12 10-16 10-22z" fill="#fff"/><rect x="32" y="52" width="36" height="16" fill="#ffc61e"/>'),
+  P:`<rect x="6" y="6" width="88" height="88" rx="14" fill="#16245c"/><path d="M50 16 80 28v22c0 18-13 30-30 36-17-6-30-18-30-36V28Z" fill="#fff"/><path d="m50 30 6 13 14 1-11 9 4 14-13-8-13 8 4-14-11-9 14-1z" fill="#16245c"/>`,
+  D:green('<path d="M28 34h44M40 34V24h20v10M34 34l4 44h24l4-44" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/>')
+ };
+ return Object.entries(s).map(([k,v])=>`<symbol id="s-${k}" viewBox="0 0 100 100">${v}</symbol>`).join('');
+}
+/* Getekende plekken. Elke tekening staat op eigen coördinaten; (0,0) is midden onderaan. */
+const WIN='#ffd97a',ST='#8d8a9e',ST2='#6f6c84',DK='#14122c',BRK='#a2523a',BRK2='#7d3b2a',SL='#3d3a5c';
+const rep=(n,f)=>Array.from({length:n},(_,i)=>f(i)).join('');
+const r=(x,y,w,h,f,e='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${f}" ${e}/>`;
+const arch=(x,y,w,h,f=WIN)=>`<path d="M${x} ${y}v${-h+w/2}a${w/2} ${w/2} 0 0 1 ${w} 0v${h-w/2}z" fill="${f}"/>`;
+const crenel=(x,y,n,step,f)=>rep(n,i=>r(x+i*step,y-9,step*.6,9,f));
+const DRAW={
+ gravensteen:()=>`<ellipse cx="0" cy="-8" rx="135" ry="20" fill="#2f6f96"/>
+  ${r(-112,-78,224,70,ST2)}${crenel(-112,-78,14,16.5,ST2)}
+  ${r(-56,-138,112,130,ST)}${crenel(-56,-138,7,17,ST)}
+  ${r(-26,-178,52,44,ST2)}${crenel(-26,-178,4,15,ST2)}
+  ${rep(2,i=>`${r(-126+i*220,-98,32,90,ST)}<path d="M${-132+i*220} -98l22 -30 22 30z" fill="${SL}"/>`)}
+  ${arch(-18,-10,36,50,DK)}${arch(-36,-92,12,24)}${arch(24,-92,12,24)}${arch(-6,-110,12,24)}`,
+ graslei:()=>{const h=[['#c98a4b',46,92],['#a2523a',42,112],['#d8b45f',40,84],['#7f8a5c',44,104],['#b86a4a',40,90]];let x=-108,o='';
+  h.forEach(([f,w,t])=>{const s=rep(3,i=>r(x+i*7,-t-(i+1)*9,w-i*14,10,f));o+=r(x,-t,w,t-10,f)+s+rep(2,i=>r(x+7+i*(w-24),-t+12,10,14,WIN))+rep(2,i=>r(x+7+i*(w-24),-t+38,10,14,WIN));x+=w+1});
+  return o+r(-120,-12,240,14,'#2f6f96')},
+ belfort:()=>`${r(40,-58,88,58,BRK2)}<path d="M34 -58h100l-10 -22h-80z" fill="${SL}"/>${rep(4,i=>arch(50+i*19,-14,10,28))}
+  ${r(-34,-136,68,136,ST)}${arch(-14,-90,28,48,DK)}${arch(-9,-16,18,16,DK)}
+  ${r(-42,-150,84,16,ST2)}${rep(2,i=>`<path d="M${-46+i*74} -150l9 -38 9 38z" fill="${SL}"/>`)}
+  <path d="M-26 -150 L-15 -205 H15 L26 -150Z" fill="${SL}"/><path d="M-13 -205 L0 -262 L13 -205Z" fill="#c9a227"/>
+  <path d="M-14 -268c8-10 18-8 24-2l10 -6-5 12c-6 5-24 6-29-4z" fill="#ffc61e"/>${r(-1,-264,2,12,'#ffc61e')}`,
+ baafs:()=>`${r(36,-84,120,84,ST2)}<path d="M30 -84h132l-16 -30h-100z" fill="${SL}"/>${rep(4,i=>arch(48+i*26,-22,14,46))}
+  ${r(-40,-190,76,190,ST)}${crenel(-40,-190,5,16,ST)}${rep(2,i=>`<path d="M${-44+i*72} -190l6 -34 6 34z" fill="${ST2}"/>`)}
+  ${arch(-14,-112,28,62,DK)}${arch(-16,-10,32,44,DK)}${arch(-10,-150,20,26)}`,
+ vrijdag:()=>`${r(-96,-6,190,8,ST2)}${r(-14,-28,28,24,ST)}${r(-9,-62,18,36,ST2)}<circle cx="0" cy="-72" r="9" fill="#3f5f58"/><path d="M-11 -62l11 -6 11 6v-24l-22 0z" fill="#3f5f58" opacity=".01"/><path d="M0 -64l18 -30" stroke="#3f5f58" stroke-width="6"/>
+  ${r(-92,-58,34,52,BRK)}<path d="M-96 -58 L-75 -96 L-54 -58Z" fill="${SL}"/>${r(-84,-46,10,14,WIN)}
+  ${rep(2,i=>`<path d="M${44+i*34} -36l18 -14 18 14z" fill="${i?'#e0303a':'#ffc61e'}"/>${r(61+i*34,-36,3,30,DK)}`)}`,
+ kouter:()=>`<path d="M-62 -66 L0 -102 L62 -66Z" fill="${SL}"/>${r(-58,-66,116,8,'#c9a227')}${rep(5,i=>r(-54+i*25.5,-58,6,46,ST))}${r(-62,-12,124,12,ST2)}
+  ${rep(2,i=>`<circle cx="${-84+i*168}" cy="-14" r="13" fill="#e0569a"/><circle cx="${-84+i*168}" cy="-14" r="6" fill="#ffc61e"/>`)}`,
+ krook:()=>`${rep(5,i=>r(-92+(i%2)*14,-22-i*26,170,20,i%2?'#5d4b3f':'#4a3b33')+rep(9,k=>r(-84+(i%2)*14+k*18,-18-i*26,11,12,WIN)))}${r(-96,-6,190,6,ST2)}`,
+ vooruit:()=>`${r(-92,-96,184,96,BRK)}${r(-92,-104,184,10,BRK2)}${rep(4,i=>arch(-80+i*24,-46,16,38))}${rep(3,i=>arch(26+i*20,-46,14,38))}
+  ${rep(9,i=>r(-82+i*19,-84,10,16,WIN))}${r(-24,-132,48,132,'#c22f3a')}<text x="0" y="-108" text-anchor="middle" class="t-sign" font-size="10" fill="#fff" textLength="44">VOORUIT</text>${arch(-14,-6,28,46,DK)}`,
+ boekentoren:()=>`${r(-58,-34,116,34,'#c6c2cf')}${r(-30,-168,60,168,'#d6d2dc')}${rep(6,i=>rep(4,k=>r(-23+k*12,-158+i*20,7,14,i%2?'#6f6c84':WIN)))}
+  ${r(-37,-180,74,12,'#b9b4c4')}${r(-22,-204,44,24,'#4e6d8c')}${rep(4,i=>r(-19+i*10,-204,3,24,'#d6d2dc'))}${r(-28,-210,56,7,'#b9b4c4')}${r(-1,-226,2,16,DK)}`,
+ overpoort:()=>{const c=[['#ff4f8b','BAR'],['#29c7d8','CLUB'],['#ffc61e','PINT'],['#8d6bff','CAFE'],['#ff7a3d','FRIET']];
+  return c.map(([f,t],i)=>`${r(-150+i*60,-96+(i%2)*14,57,96-(i%2)*14,i%2?'#4a4470':'#3b3560')}${r(-146+i*60,-88+(i%2)*14,49,20,DK,`stroke="${f}" stroke-width="3"`)}<text x="${-121.5+i*60}" y="${-73+(i%2)*14}" text-anchor="middle" class="t-sign" font-size="13" fill="${f}">${t}</text>${r(-142+i*60,-58,16,20,WIN)}${r(-120+i*60,-58,16,20,WIN)}${r(-132+i*60,-30,18,30,DK)}`).join('')
+   +rep(6,i=>`<circle cx="${-135+i*53}" cy="${10}" r="6" fill="#f2d3b3"/><rect x="${-140+i*53}" y="16" width="10" height="18" fill="${['#ff4f8b','#29c7d8','#ffc61e'][i%3]}"/>`)},
+ abdij:()=>`${r(-150,-62,300,62,BRK2)}${crenel(-150,-62,20,15.5,BRK2)}
+  ${r(52,-60,78,50,'#2c5a4c')}${rep(3,i=>r(58+i*25,-54,3,40,'#8ed13f'))}
+  ${r(-96,-114,150,114,BRK)}<path d="M-102 -114h162l-14 -24h-134z" fill="${SL}"/>
+  <path d="M-48 -138v-34c0-40 76-40 76 0v34z" fill="${ST2}"/><path d="M-42 -172c4-42 64-42 68 0z" fill="#3f6d7a"/>${r(-14,-226,12,18,ST)}<path d="M-8 -248v26M-14 -238h12" stroke="#ffc61e" stroke-width="4"/>
+  ${rep(3,i=>r(-32+i*20,-168,8,26,WIN))}${arch(-26,-8,36,62,DK)}${rep(2,i=>arch(-76+i*112,-30,20,50))}${arch(-20,-74,24,26)}`,
+ citadel:()=>`<ellipse cx="0" cy="-30" rx="150" ry="74" fill="#2f7d55"/><ellipse cx="46" cy="-22" rx="52" ry="20" fill="#2f6f96"/>
+  ${[[-110,-40,30],[-74,-74,34],[-30,-56,26],[12,-84,32],[74,-74,28],[112,-42,26],[-90,-8,24]].map(([x,y,s])=>`${r(x-3,y,6,s*.9,'#5d3f2c')}<circle cx="${x}" cy="${y}" r="${s}" fill="#3e9d6a"/>`).join('')}
+  ${r(-40,-26,62,26,'#d6d2dc')}${rep(4,i=>r(-36+i*15,-22,5,22,'#8d8a9e'))}<path d="M-46 -26h74l-37 -18z" fill="${SL}"/>`,
+ station:()=>`${r(-140,-62,280,62,'#b9a68a')}<path d="M-146 -62h292l-20 -30h-252z" fill="${SL}"/>${rep(10,i=>arch(-130+i*27,-10,14,38))}
+  ${r(-34,-150,68,150,'#c8b596')}${rep(2,i=>r(-44+i*62,-168,26,168,'#b9a68a'))}<path d="M-30 -150 L0 -196 L30 -150Z" fill="${SL}"/>
+  <circle cx="0" cy="-114" r="17" fill="#fff" stroke="${DK}" stroke-width="3"/><path d="M0 -114v-12M0 -114l9 5" stroke="${DK}" stroke-width="3"/>${arch(-17,-6,34,52,DK)}`,
+ rabot:()=>`<ellipse cx="0" cy="-6" rx="128" ry="16" fill="#2f6f96"/>${rep(2,i=>`${r(-92+i*128,-120,56,114,BRK)}<path d="M${-98+i*128} -120 L${-64+i*128} -180 L${-30+i*128} -120Z" fill="${SL}"/>${arch(-72+i*128,-74,16,28)}`)}
+  ${rep(4,i=>r(-36+i*9,-112+i*9*0-i*0,72-i*18+i,12,BRK2).replace('x="','x="').replace(/y="[^"]+"/,'y="'+(-92-i*12)+'"'))}${r(-36,-82,72,76,BRK2)}${arch(-22,-6,44,56,'#2f6f96')}`,
+ dok:()=>`${r(-170,-74,340,74,BRK)}${rep(7,i=>`<path d="M${-170+i*48.6} -74l48.6 -36v36z" fill="${i%2?'#7d3b2a':'#8f4632'}"/>`)}${rep(9,i=>arch(-158+i*36,-14,20,40))}
+  ${r(128,-168,26,168,BRK2)}${r(122,-174,38,10,ST2)}<rect x="-70" y="-52" width="140" height="26" fill="${DK}"/><text x="0" y="-33" text-anchor="middle" class="t-sign" font-size="17" fill="#ffc61e">DOK NOORD</text>`,
+ portus:()=>`<ellipse cx="0" cy="-16" rx="160" ry="30" fill="#2f6f96"/>${[[-96,0],[-20,8],[66,-4]].map(([x,y])=>`<path d="M${x-30} ${y-24}h60l-12 15h-36z" fill="#f2f2f7"/>${r(x-1,y-84,3,60,DK)}<path d="M${x+2} ${y-82}l28 50h-28z" fill="#ffc61e"/>`).join('')}
+  ${r(84,-112,62,88,ST2)}${arch(94,-24,20,62,'#2b3a55')}${arch(120,-24,18,62,'#2b3a55')}${crenel(84,-112,5,12,ST2)}`,
+ zuidpark:()=>`<ellipse cx="0" cy="-24" rx="150" ry="62" fill="#2f7d55"/>${[[-108,-34,26],[-62,-64,30],[62,-66,30],[110,-36,26],[-40,-14,20],[50,-14,20]].map(([x,y,t])=>`${r(x-3,y,6,t*.9,'#5d3f2c')}<circle cx="${x}" cy="${y}" r="${t}" fill="#3e9d6a"/>`).join('')}
+  <ellipse cx="0" cy="-20" rx="34" ry="12" fill="#2f6f96"/>${r(-5,-66,10,46,ST)}<circle cx="0" cy="-72" r="9" fill="${ST2}"/>`,
+ stadion:()=>`<ellipse cx="0" cy="-54" rx="176" ry="66" fill="#1f4f9c"/><ellipse cx="0" cy="-54" rx="150" ry="52" fill="#e8e2ff"/><ellipse cx="0" cy="-54" rx="124" ry="38" fill="#2c8a4e"/><path d="M0 -92v76" stroke="#fff" stroke-width="3"/><ellipse cx="0" cy="-54" rx="20" ry="10" fill="none" stroke="#fff" stroke-width="3"/>
+  ${rep(4,i=>`${r(-168+i*108,-150+(i%3?-6:18),5,70,ST2)}${r(-176+i*108,-154+(i%3?-6:18),22,12,'#fff6c8')}`)}`,
+ expo:()=>`<path d="M-170 -2V-70C-90 -128 90 -128 170 -70V-2Z" fill="#6f8ca8"/><path d="M-170 -70C-90 -128 90 -128 170 -70" fill="none" stroke="#d6d2dc" stroke-width="8"/>${rep(11,i=>r(-150+i*28,-58,16,50,i%3?WIN:'#3d3a5c'))}${rep(3,i=>`${r(-124+i*118,-160,4,50,DK)}<path d="M${-120+i*118} -160l32 10-32 10z" fill="${['#e0303a','#ffc61e','#18b7a6'][i]}"/>`)}`,
+ uz:()=>`${r(-140,-132,120,132,'#d6d2dc')}${rep(6,i=>rep(5,k=>r(-132+k*22,-124+i*20,14,12,(i+k)%4?WIN:'#6f6c84')))}${r(-14,-92,150,92,'#c6c2cf')}${rep(4,i=>rep(7,k=>r(-6+k*20,-84+i*20,12,12,WIN)))}
+  ${r(40,-132,58,40,'#fff')}${r(63,-127,12,30,'#e0303a')}${r(54,-118,30,12,'#e0303a')}`,
+ blaarmeersen:()=>`<ellipse cx="0" cy="-34" rx="170" ry="60" fill="#2f6f96"/><path d="M-170 -30C-150 22 150 22 170 -30C90 -8 -90 -8 -170 -30Z" fill="#e7d39a"/>
+  <path d="M-46 -40h52l-8 12h-36z" fill="#f2f2f7"/>${r(-22,-100,3,60,DK)}<path d="M-18 -98l30 52h-30z" fill="#ff6b4a"/><path d="M58 -66h34l-6 8h-22z" fill="#f2f2f7"/>${r(74,-104,2,38,DK)}<path d="M77 -102l18 32h-18z" fill="#ffc61e"/>
+  ${rep(3,i=>`<path d="M${-120+i*90} -2l16 -22 16 22z" fill="${['#e0303a','#18b7a6','#ffc61e'][i]}"/>`)}`,
+ bijloke:()=>`${r(-124,-70,248,70,BRK)}<path d="M-124 -70 L-96 -124 H96 L124 -70Z" fill="${SL}"/>${rep(6,i=>arch(-108+i*38,-12,20,44))}
+  ${rep(2,i=>{const x=-136+i*232;return r(x,-104,40,104,BRK2)+rep(4,k=>r(x+k*4,-112-k*9,40-k*8,10,BRK2))+arch(x+13,-50,14,34)}).replace(/undefined/g,'')}`,
+ sterre:()=>`${r(-120,-92,92,92,'#cfcbd8')}${rep(5,i=>rep(5,k=>r(-114+k*17,-86+i*17,11,11,(i+k)%3?WIN:'#6f6c84')))}
+  ${r(-16,-58,128,58,'#b9b4c4')}${rep(3,i=>rep(6,k=>r(-10+k*20,-52+i*17,14,11,WIN)))}
+  <path d="M28 -58c0-40 62-40 62 0z" fill="#6f8ca8"/><path d="M59 -90l30 -22" stroke="${DK}" stroke-width="4"/>`
+};
+/* Plek op de kaart: tekening, schaal, naam */
+const SCENE=[['gravensteen',420,214,1,'Gravensteen'],['graslei',372,432,.78,'Graslei'],['belfort',600,410,.82,'Belfort'],['baafs',920,452,.82,'Sint-Baafs'],['vrijdag',1000,168,.9,'Vrijdagmarkt'],
+ ['kouter',593,590,.72,'Kouter'],['krook',770,690,.72,'Krook'],['vooruit',905,845,.62,'Vooruit'],['boekentoren',560,912,.6,'Boekentoren'],['overpoort',490,1135,1.05,'Overpoort',44],
+ ['abdij',1030,985,.85,'Sint-Pietersabdij',-8],['citadel',240,940,.95,'Citadelpark'],['station',255,1275,.8,'Sint-Pietersstation'],['sterre',900,1265,.82,'Campus Sterre'],
+ ['rabot',60,150,.9,'Rabot'],['dok',1120,-40,1.1,'Dok Noord'],['portus',1420,510,1.1,'Portus Ganda'],['zuidpark',1380,830,1.05,'Zuidpark'],['stadion',1180,1400,1.2,'Stadion KAA Gent'],
+ ['expo',460,1510,1.2,'Flanders Expo'],['uz',-140,1340,.85,'UZ Gent'],['blaarmeersen',-110,1040,1.2,'Blaarmeersen'],['bijloke',-150,640,.95,'Bijloke']];
+function staticBoard(){
+  const road=STREETS.map(([a,b,cx,cy])=>`M${J[a][0]} ${J[a][1]}Q${cx} ${cy} ${J[b][0]} ${J[b][1]}`).join('');
+  let h=`<defs>${signSym()}</defs><rect x="${VX}" y="${VY}" width="${VS}" height="${VS}" fill="#2b4a48"/>`;
+  /* stadsgrond met losse wijken */
+  h+=`<path d="M-260 300C-260 -160 300 -280 760 -200S1500 -90 1540 380 1560 1320 900 1470 -40 1520 -220 1200 -260 700 -260 300Z" fill="#2e3b58"/>`;
+  [[-300,-300,90],[1650,300,110],[1640,1500,120],[-330,1620,70],[300,1640,80],[1300,-340,80]].forEach(([x,y,z])=>{for(let i=0;i<5;i++)h+=`<circle cx="${x+Math.cos(i*2.1)*z}" cy="${y+Math.sin(i*2.1)*z}" r="${z*.42}" fill="#35705a"/>`});
+  /* Leie en Schelde */
+  h+=`<g fill="none" stroke="#2f6f96" stroke-linecap="round"><path d="M-420 1450C-120 1150 250 800 290 640S300 330 330 230 560 70 760 95 1120 60 1720 40" stroke-width="44"/><path d="M1720 1420C1300 1120 1090 960 1085 780S1040 420 920 250 860 120 760 95" stroke-width="36"/><path d="M230 690C150 520 130 300 60 -20S-60 -300 -160 -420" stroke-width="22"/><path d="M930 100L985 -420" stroke-width="58"/></g><ellipse cx="-110" cy="1000" rx="0" ry="0"/>`;
+  /* straten */
+  h+=`<path d="${road}" fill="none" stroke="#17152f" stroke-width="68" stroke-linecap="round"/><path d="${road}" fill="none" stroke="#3f3c58" stroke-width="58" stroke-linecap="round"/><path d="${road}" fill="none" stroke="#e8e2ff" stroke-width="3" stroke-dasharray="12 14" opacity=".35"/>`;
+  SCENE.forEach(([k,x,y,s,n])=>{
+    h+=`<g transform="translate(${x} ${y}) scale(${s})">${DRAW[k]()}</g>`;
+  });
+  ROADS.forEach(i=>{h+=`<circle cx="${X(i)}" cy="${Y(i)}" r="9" fill="#e8e2ff" opacity=".7"/>`});
+  KANS.forEach(i=>{h+=`<rect x="${X(i)-27}" y="${Y(i)-27}" width="54" height="54" rx="9" fill="#ff8a1f"/><text x="${X(i)}" y="${Y(i)+20}" text-anchor="middle" class="t-sign" font-size="44" fill="#2b1400">?</text>`});
+  GARAGE.forEach(i=>{h+=`<use href="#s-M" x="${X(i)-27}" y="${Y(i)-27}" width="54" height="54"/>`});
+  FUEL.forEach(i=>{h+=`<use href="#s-T" x="${X(i)-27}" y="${Y(i)-27}" width="54" height="54"/>`});
+  LIGHTS.forEach(i=>{const x=X(i),y=Y(i);h+=`<circle cx="${x}" cy="${y}" r="34" fill="#23213a"/><rect x="${x-14}" y="${y-30}" width="28" height="60" rx="8" fill="#0d0c1c"/><circle cx="${x}" cy="${y-17}" r="7.5" fill="#e0303a"/><circle cx="${x}" cy="${y}" r="7.5" fill="#ffc61e"/><circle cx="${x}" cy="${y+17}" r="7.5" fill="#2fb673"/>`});
+  SCENE.forEach(([k,x,y,s,n,dy=6])=>{
+    const w=n.length*14.5+22,lx=x,ly=y+dy;
+    h+=`<g><rect x="${lx-w/2}" y="${ly}" width="${w}" height="32" rx="6" fill="#141130" opacity=".92"/><text x="${lx}" y="${ly+24}" text-anchor="middle" class="t-label" font-size="27" fill="#ffc61e">${n}</text></g>`;
+  });
+  h+=`<g id="stops"></g><g id="signs"></g><g id="pax"></g><g id="cells">`;
+  ROADS.forEach(i=>{h+=`<circle class="cell" data-c="${i}" cx="${X(i)}" cy="${Y(i)}" r="30"/>`});
+  h+=`</g><g id="taxis"></g>`;
+  return h;
+}
+function taxiSvg(col,i){
+  return `<g class="taxi" id="tx${i}"><g class="rot" id="txr${i}"><g transform="scale(.74)">
+   <rect x="-34" y="-25" width="68" height="50" rx="20" fill="#14122c"/>
+   <rect x="-30" y="-21" width="60" height="42" rx="17" fill="${col}"/>
+   <rect x="-16" y="-16" width="26" height="32" rx="7" fill="#14122c" opacity=".75"/>
+   <rect x="16" y="-15" width="9" height="30" rx="3" fill="#cfe7ff"/>
+   <circle id="txp${i}" cx="-3" cy="0" r="9" fill="#fff" stroke="#14122c" stroke-width="3" visibility="hidden"/>
+  </g></g></g>`;
+}
+const board=document.getElementById('board');
+board.innerHTML=staticBoard();
+const ang={},lastPos={};
+const nearAny=(x,y)=>ROADS.slice().sort((a,b)=>Math.hypot(X(a)-x,Y(a)-y)-Math.hypot(X(b)-x,Y(b)-y))[0];
+const SAMPLE={P:[{pos:nearAny(340,520),home:STOPS[0],pax:-1,nm:''},{pos:nearAny(700,560),home:STOPS[1],pax:0,nm:''},{pos:nearAny(690,1030),home:STOPS[2],pax:-1,nm:''}],
+  n:3,signs:{[nearAny(850,500)]:'S',[nearAny(520,725)]:'4',[nearAny(180,300)]:'G',[nearAny(860,920)]:'B'},
+  pax:[LANDMARKS[9],LANDMARKS[0],LANDMARKS[10],LANDMARKS[8]].map((l,i)=>({c:l.c,s:0,i}))};
+
+function renderBoard(){
+  const g=G||SAMPLE;
+  board.querySelector('#stops').innerHTML=g.P.map((p,i)=>{const x=X(p.home),y=Y(p.home);
+    return `<path d="M${x-34} ${y+26}v-30l34 -26 34 26v30z" fill="#14122c" stroke="${COLORS[i]}" stroke-width="7" stroke-linejoin="round"/><text x="${x}" y="${y+17}" text-anchor="middle" class="t-label" font-size="24" fill="${COLORS[i]}">KOT</text>`}).join('');
+  board.querySelector('#signs').innerHTML=Object.entries(g.signs).map(([c,s])=>`<use href="#s-${s}" x="${X(+c)-30}" y="${Y(+c)-30}" width="60" height="60"/>`).join('');
+  board.querySelector('#pax').innerHTML=g.pax.filter(x=>x.s===0).map(x=>{const cx=X(x.c),cy=Y(x.c);
+    return `<g><title>${esc(PAX[x.i].n)}</title><circle cx="${cx}" cy="${cy}" r="27" fill="#14122c" fill-opacity=".55" stroke="#fff" stroke-width="5" stroke-dasharray="8 7"/><circle cx="${cx}" cy="${cy-12}" r="9" fill="#fff"/><path d="M${cx-12} ${cy+15}c0-22 24-22 24 0z" fill="#fff"/></g>`}).join('');
+  const sel=new Set(),rem=new Set();
+  if(G&&canAct()&&!G.modal&&!rolling){
+    if(G.phase==='place')validCells(G.drawn).forEach(c=>sel.add(c));
+    if(G.phase==='remove')Object.keys(G.signs).forEach(c=>rem.add(+c));
+    if(G.phase==='move'&&G.by===ME&&opts().length>1)opts().forEach(c=>sel.add(c));
+  }
+  board.querySelectorAll('.cell').forEach(el=>{const c=+el.dataset.c;el.classList.toggle('sel',sel.has(c));el.classList.toggle('rem',rem.has(c))});
+  const lay=board.querySelector('#taxis');
+  if(lay.childElementCount!==g.P.length){lay.innerHTML=g.P.map((p,i)=>taxiSvg(COLORS[i],i)).join('');for(const k in lastPos)delete lastPos[k]}
+  const spot={};
+  g.P.forEach((p,i)=>{
+    const lp=lastPos[i];
+    if(lp!==undefined&&lp!==p.pos&&dist(lp,p.pos)===1){
+      const t=Math.atan2(Y(p.pos)-Y(lp),X(p.pos)-X(lp))*180/Math.PI,cur=ang[i]||0,d=((t-cur+540)%360)-180;ang[i]=cur+d;
+    }
+    lastPos[i]=p.pos;
+    const k=spot[p.pos]=(spot[p.pos]||0)+1, off=(k-1)*14;
+    document.getElementById('tx'+i).style.transform=`translate(${X(p.pos)+off}px,${Y(p.pos)+off}px)`;
+    document.getElementById('txr'+i).style.transform=`rotate(${ang[i]||0}deg)`;
+    document.getElementById('txp'+i).setAttribute('visibility',p.pax>=0?'visible':'hidden');
+  });
+  lay.appendChild(document.getElementById('tx'+(G?G.cur:0)));
+  const key=G?G.cur+':'+G.P[G.cur].pos:'';
+  if(G&&key!==lastFocus&&G.phase!=='place'&&G.phase!=='remove'){lastFocus=key;focusOn(G.P[G.cur].pos)}
+}
+let zoom='near',lastFocus='';
+const wrapEl=document.getElementById('wrap');
+function focusOn(i,instant){
+  if(zoom!=='near'||!wrapEl.clientWidth)return;
+  const k=board.clientWidth/VS, calm=instant||matchMedia('(prefers-reduced-motion:reduce)').matches;
+  wrapEl.scrollTo({left:(X(i)-VX)*k-wrapEl.clientWidth/2,top:(Y(i)-VY)*k-wrapEl.clientHeight/2,behavior:calm?'auto':'smooth'});
+}
+function setZoom(z){
+  zoom=z;board.classList.toggle('near',z==='near');
+  document.getElementById('zoom').textContent=z==='near'?'Hele kaart':'Inzoomen';
+  if(z==='near')focusOn(G?G.P[G.cur].pos:nid.ku,true);
+}
+document.getElementById('zoom').addEventListener('click',()=>setZoom(zoom==='near'?'fit':'near'));
+board.addEventListener('click',e=>{
+  const el=e.target.closest('.cell');if(!el||!G)return;const c=+el.dataset.c;
+  if(el.classList.contains('sel')){
+    if(G.phase==='place')act(()=>place(c));
+    else if(G.phase==='move')act(()=>stepTo(c));
+  }else if(el.classList.contains('rem'))act(()=>removeSign(c));
+});
+
+/* ---------- paneel ---------- */
+const side=document.getElementById('side'),modalEl=document.getElementById('modal');
+const icon=k=>`<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#s-${k}"/></svg>`;
+function legend(){
+  const row=(k,v)=>`<div>${icon(k)}<span><b>${v.n}</b>${v.d}</span></div>`;
+  return `<details><summary>Verkeersborden</summary><div class="legend">${Object.entries(SIGNS).map(([k,v])=>row(k,v)).join('')}${Object.entries(ACTIONS).map(([k,v])=>row(k,v)).join('')}</div></details>
+  <details><summary>Spelregels</summary><div class="helptext">
+   <p>Elke beurt trek je uit de stapel: een bord leg je op straat, een actie voer je uit, een kanskaart lees je voor. Daarna gooi je en rij je je worp plus 2 stappen, want de stad is groot.</p>
+   <p>Passagiers wachten aan de plekken in de stad. Rij naar een stippelcirkel om er een op te halen en breng die naar je eigen kot. Keren in dezelfde beurt mag niet.</p>
+   <p>Bij verkeerslichten telt de kleur van de dobbelsteen. 1 of 2 is rood: stoppen en 1 slok. 4 of 6 is oranje: halve worp. 3 of 5 is groen: doorrijden.</p>
+   <p>Sleep over de kaart om rond te kijken of tik op Hele kaart. Elke stip op de weg is een stap. Eindig je op een oranje vraagteken, dan trek je een kanskaart.</p>
+   <p>Wie eerst het aantal uit de stand afzet, wint. De stapel leeg? Dan wint wie de meeste passagiers afzette.</p>
+  </div></details>`;
+}
+function setupPanel(saved){
+  const names=setupNames;
+  return `<div class="plate stack">
+    <div><p class="lead">Stap in, rij door Gent, leg borden en drink wat de kaart zegt.</p></div>
+    ${saved?`<button class="btn" id="resume">Verder met de vorige rit</button>`:''}
+    <div class="stack">
+      <div class="field"><label for="count">Spelers</label><select id="count">${[2,3,4,5,6].map(n=>`<option ${n===names.length?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="names">${names.map((s,i)=>`<div class="field"><label for="pn${i}">Tuk-tuk ${COLORNAMES[i]}</label><input id="pn${i}" maxlength="14" value="${esc(s)}"></div>`).join('')}</div>
+      <div class="grid2">
+        <div class="field"><label for="str">Dorst</label><select id="str"><option value="0">Rustig</option><option value="1" selected>Normaal</option><option value="2">Stevig</option></select></div>
+        <div class="field"><label for="len">Lengte</label><select id="len"><option value="kort">Korte rit</option><option value="lang" selected>Lange rit</option></select></div>
+      </div>
+      <button class="btn" id="start">Start de rit</button>
+      <p class="small">Voor 18+. Geen alcohol? Water of frisdrank telt net zo goed. Sla gerust een slok over: niemand hoeft mee te doen.</p>
+    </div>
+  </div>
+  ${roomCap?`<div class="plate stack"><h2>Elk op een eigen scherm</h2>
+    <button class="btn alt" id="host">Online tafel openen</button>
+    <div class="row"><div class="field"><label for="code">Code van een tafel</label><input id="code" maxlength="4" autocomplete="off"></div><button class="btn alt" id="join">Aansluiten</button></div>
+    <p class="small" id="roomerr">Vrienden hebben toegang tot deze pagina nodig als bijdrager en moeten aangemeld zijn.</p></div>`:''}
+  <div class="plate">${legend()}</div>`;
+}
+let setupNames=['Jef','Marie','Rik'];
+function readNames(){return setupNames.map((s,i)=>{const e=document.getElementById('pn'+i);return e?(e.value.trim()||('Speler '+(i+1))):s})}
+const DEF=['Jef','Marie','Rik','Lien','Wout','Sofie'];
+function setupEvents(){
+  const on=(i,f,ev='click')=>{const e=document.getElementById(i);if(e)e.addEventListener(ev,f)};
+  on('count',e=>{const cur=readNames(),n=+e.target.value;setupNames=Array.from({length:n},(_,i)=>cur[i]||DEF[i]);render()},'change');
+  const begin=()=>{const s=document.getElementById('str').value,l=document.getElementById('len').value;setupNames=readNames();newGame(setupNames,+s,l)};
+  on('start',()=>{begin();commit()});
+  on('resume',()=>{G=load();render();drive()});
+  on('host',async()=>{
+    try{const code=Math.random().toString(36).slice(2,6);begin();await joinRoom(code);commit()}
+    catch(e){G=null;room=null;document.getElementById('roomerr').textContent='De online tafel ging niet open. Speel op één scherm of probeer het later opnieuw.';render()}
+  });
+  on('join',async()=>{
+    const v=document.getElementById('code').value.trim().toLowerCase();
+    if(!/^[a-z0-9]{4}$/.test(v)){document.getElementById('roomerr').textContent='Een code telt 4 letters of cijfers.';return}
+    try{await joinRoom(v);document.getElementById('roomerr').textContent='Verbonden. Wacht op de stand van tafel '+v+'.'}
+    catch(e){document.getElementById('roomerr').textContent='Aansluiten lukte niet. Controleer de code en je toegang tot deze pagina.'}
+  });
+}
+function phaseView(){
+  const p=P(),who=esc(p.nm),mine=canAct();
+  const wait=`<p class="hint">Wacht op ${who}.</p>`;
+  let body='',btn='';
+  const die=`<div class="die ${G.roll&&!rolling?'c-'+lightColor(G.roll):''}" aria-label="Dobbelsteen">${rolling?'?':(G.roll||'-')}</div>`;
+  if(G.phase==='draw'){body=`<p class="hint">Trek uit de stapel. Nog ${G.deck.length-G.di} fiches.</p>`;btn=`<button class="btn" id="draw" ${mine?'':'disabled'}>Trek</button>`}
+  else if(G.phase==='place'){const s=SIGNS[G.drawn]||ACTIONS[G.drawn];body=`<div class="signpreview">${icon(G.drawn)}<div><strong>${s.n}</strong><small>${s.d}</small></div></div><p class="hint" style="min-height:0;margin-top:8px">${mine?'Tik een oplichtend vak om het bord te leggen. Sleep de kaart om verder te kijken.':''}</p>`}
+  else if(G.phase==='remove'){body=`<div class="signpreview">${icon('D')}<div><strong>Bord weg</strong><small>Tik een rood gemarkeerd bord om het weg te halen.</small></div></div>`;btn=`<button class="btn alt" id="skipremove" ${mine?'':'disabled'}>Niets weghalen</button>`}
+  else if(G.phase==='roll'){body=`<p class="hint">Gooi de dobbelsteen. Rood is 1 of 2, oranje 4 of 6, groen 3 of 5.</p>`;btn=`<button class="btn" id="roll" ${mine&&!rolling?'':'disabled'}>${rolling?'Rolt...':'Gooi'}</button>`}
+  else if(G.phase==='move'){const many=opts().length>1;body=`<p class="hint">Nog <b>${G.left}</b> ${G.left===1?'stap':'stappen'}. ${many?'Tik waar je heen rijdt.':'De tuk-tuk rijdt.'}</p>`}
+  else if(G.phase==='over'){const r=ranking();body=`<p class="hint">${esc(r[0].nm)} wint met ${r[0].done} afgezet.</p>`;btn=`<button class="btn" id="again">Nieuwe rit</button>`}
+  if(!mine&&G.phase!=='over')body=wait;
+  return `<div class="plate"><div class="turn"><span class="dot" style="background:${COLORS[G.cur]}"></span><p class="lead">${who}</p></div>${body}<div class="action">${die}${btn}</div></div>`;
+}
+function scoreView(){
+  return `<div class="plate"><table class="tbl"><thead><tr><th>Chauffeur</th><th>Afgezet</th><th>Slokken</th></tr></thead><tbody>
+  ${G.P.map((p,i)=>`<tr class="${i===G.cur&&G.phase!=='over'?'now':''}"><td><div class="who"><span class="dot" style="background:${COLORS[i]}"></span><span>${esc(p.nm)}${p.pax>=0?`<span class="car">met ${esc(PAX[G.pax[p.pax].i].n.toLowerCase())}</span>`:''}${p.skip?'<span class="car">slaat over</span>':''}</span></div></td><td>${p.done}/${G.target}</td><td>${p.sips}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+function roomView(){
+  if(!room)return '';
+  return `<div class="plate stack"><h2>Online tafel</h2><div class="row"><div><div class="code">${esc(roomCode.toUpperCase())}</div><p class="small">${peersN} ${peersN===1?'scherm':'schermen'} verbonden</p></div>
+   <div class="field"><label for="seat">Dit scherm is</label><select id="seat"><option value="-1">Iedereen</option>${G.P.map((p,i)=>`<option value="${i}" ${mySeat===i?'selected':''}>${esc(p.nm)}</option>`).join('')}</select></div></div></div>`;
+}
+function render(){
+  renderBoard();
+  if(!G){
+    side.innerHTML=setupPanel(!!load());setupEvents();modalEl.innerHTML='';return;
+  }
+  const focusId=document.activeElement&&document.activeElement.id;
+  side.innerHTML=phaseView()+roomView()+scoreView()+
+   (G.rules.length?`<div class="plate"><h2>Regels aan tafel</h2><div class="rules">${G.rules.map(r=>`<div>${esc(r.t)}</div>`).join('')}</div></div>`:'')+
+   (G.log.length?`<div class="plate"><h2>Op de radio</h2><div class="log">${G.log.map(l=>`<div>${esc(l)}</div>`).join('')}</div></div>`:'')+
+   `<div class="plate">${legend()}<button class="btn alt" id="quit" style="margin-top:8px">Rit stoppen</button></div>`;
+  const on=(i,f,ev='click')=>{const e=document.getElementById(i);if(e)e.addEventListener(ev,f)};
+  on('draw',()=>act(draw));on('roll',rollClick);on('skipremove',()=>act(()=>{G.phase='roll'}));
+  on('again',()=>{G=null;try{localStorage.removeItem('zatte-tuktuk-gent2')}catch(e){}render()});
+  on('quit',()=>{clearTimeout(autoTimer);if(room){room.leave().catch(()=>{});room=null}G=null;mySeat=-1;render()});
+  on('seat',e=>{mySeat=+e.target.value;render()},'change');
+  if(focusId){const f=document.getElementById(focusId);if(f)f.focus()}
+  renderModal();
+}
+const KLAB={kans:'Kanskaart',drink:'Drinken',pax:'Passagier',info:'Verkeer',win:'Eindstreep'};
+function renderModal(){
+  const m=G&&G.modal;
+  if(!m){modalEl.innerHTML='';return}
+  const can=m.k==='win'?true:canAct();
+  const whoTxt=m.who?(m.who.length===G.n?'Iedereen':m.who.map(nm).map(esc).join(', ')):'';
+  let foot='';
+  if(m.mode&&can){
+    let list=G.P.map((p,i)=>i);
+    if(m.mode==='swap')list=list.filter(i=>i!==G.cur);
+    if(m.mode==='steal')list=list.filter(i=>G.P[i].pax>=0&&i!==G.cur);
+    const lab=m.mode==='give'?`Tik per slok op wie drinkt. Nog ${m.n} te verdelen.`:m.mode==='loser'?`Wie drinkt ${m.n}?`:'Kies een chauffeur.';
+    foot=`<p style="font-weight:700;font-size:15px">${lab}</p><div class="picks">${list.map(i=>`<button data-p="${i}">${esc(nm(i))}<em>${m.given&&m.given[i]?'+'+m.given[i]:'&nbsp;'}</em></button>`).join('')}</div>`;
+  }else if(m.mode){foot=`<p class="small" style="color:#6a5f3f">${esc(nm(G.cur))} kiest.</p>`}
+  else foot=can?`<button class="btn" id="ok">${m.k==='win'?'Bekijk de stand':'Gedaan'}</button>`:`<p class="small" style="color:#6a5f3f">Wacht op ${esc(nm(G.cur))}.</p>`;
+  const key=m.t+m.x+(m.n||0);
+  modalEl.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="${esc(m.t)}"><div class="card k-${m.k}" ${modalEl.dataset.key===key?'style="animation:none"':''}>
+   <header><span>${KLAB[m.k]||''}</span><span>${esc(nm(G.cur))}</span></header><div class="body"><h3>${esc(m.t)}</h3><p>${esc(m.x)}</p>
+   ${m.who&&m.n?`<div class="sips"><b>${m.n}</b><span>${m.n===1?'slok':'slokken'} voor ${whoTxt}</span></div>`:''}${foot}</div></div></div>`;
+  modalEl.dataset.key=key;
+  const ok=document.getElementById('ok');
+  if(ok){ok.focus();ok.addEventListener('click',()=>{if(m.k==='win'){G.modal=null;G.v++;save();render();send()}else act(okModal)})}
+  modalEl.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>act(()=>pick(+b.dataset.p))));
+}
+
+/* ---------- paardenrace ---------- */
+const HORSES=[
+ {n:'Cuberdon',c:'#a03be0',coat:'#6b3f22',dark:'#3d2212',em:'M0 -9 2.6 -3 9 -2.8 4 1.2 5.6 7.5 0 4 -5.6 7.5 -4 1.2 -9 -2.8 -2.6 -3Z',emn:'ster'},
+ {n:'Stropke',c:'#e0303a',coat:'#33211a',dark:'#120b08',em:'M0 -9 8 0 0 9 -8 0Z',emn:'ruit'},
+ {n:'Waterzooi',c:'#e8a800',coat:'#a76a32',dark:'#5e3817',em:'M-8 0a8 8 0 1 0 16 0a8 8 0 1 0 -16 0Z',emn:'cirkel'},
+ {n:'Mastel',c:'#12a594',coat:'#cdb48f',dark:'#7d6a4b',em:'M-3 -9h6v6h6v6h-6v6h-6v-6h-6v-6h6Z',emn:'kruis'}
+];
+const LEN=8, STEPX=105, STARTX=70, LANEY=[250,350,450,550];
+const raceDefaults=['Jef','Marie','Rik','Lien','Wout','Sofie','Bram','Noor'];
+const RS=loadRace()||{players:[0,1,2].map(i=>({nm:raceDefaults[i],horse:i,bet:2,sips:0}))};
+let RP={phase:'bet',pos:[0,0,0,0],deck:[],di:0,hurd:[],lead:-1,call:'',give:0,auto:null};
+function loadRace(){try{return JSON.parse(localStorage.getItem('paardenrace-spelers'))}catch(e){return null}}
+function saveRace(){try{localStorage.setItem('paardenrace-spelers',JSON.stringify(RS))}catch(e){}}
+function horseArt(h,i=0){
+  const H=HORSES[h];
+  return `<g class="hs"><path d="M-46 -38c-18 2-24 16-22 34" stroke="${H.dark}" stroke-width="7" fill="none" stroke-linecap="round"/>
+   <line class="leg a" x1="-30" y1="-24" x2="-34" y2="16" stroke="${H.dark}" stroke-width="8" stroke-linecap="round"/><line class="leg b" x1="26" y1="-24" x2="30" y2="16" stroke="${H.dark}" stroke-width="8" stroke-linecap="round"/>
+   <line class="leg b" x1="-36" y1="-24" x2="-42" y2="16" stroke="${H.coat}" stroke-width="9" stroke-linecap="round"/><line class="leg a" x1="32" y1="-24" x2="38" y2="16" stroke="${H.coat}" stroke-width="9" stroke-linecap="round"/>
+   <ellipse cx="0" cy="-34" rx="47" ry="19" fill="${H.coat}"/><path d="M26 -46 54 -76 68 -66 44 -26Z" fill="${H.coat}"/><ellipse cx="70" cy="-70" rx="18" ry="9.5" transform="rotate(22 70 -70)" fill="${H.coat}"/><path d="M56 -79l3 -11 6 9z" fill="${H.dark}"/><path d="M28 -48 53 -77" stroke="${H.dark}" stroke-width="6" stroke-linecap="round"/><circle cx="68" cy="-72" r="2.4" fill="#111"/>
+   <rect x="-26" y="-53" width="42" height="27" rx="5" fill="${H.c}"/><g transform="translate(-5 -39) scale(.85)"><path d="${H.em}" fill="#fff"/></g>
+   <path d="M-8 -53 12 -84 26 -76 8 -50Z" fill="${H.c}"/><path d="M14 -74 44 -62" stroke="#f2d3b3" stroke-width="5" stroke-linecap="round"/><circle cx="26" cy="-90" r="9" fill="#f2d3b3"/><path d="M16 -92a10.5 10.5 0 0 1 21 0z" fill="${H.c}"/></g>`;
+}
+function raceStatic(){
+  let h=`<rect width="1000" height="620" fill="#2f8f52"/><rect y="0" width="1000" height="150" fill="#2b2a5a"/>`;
+  h+=`<rect y="118" width="1000" height="34" fill="#c9c4d9"/>`;
+  h+=rep(58,i=>rep(5,k=>`<circle cx="${10+i*17.2+(k%2)*8}" cy="${50+k*14}" r="6" fill="${['#ffc61e','#f2d3b3','#e0303a','#29c7d8','#f2d3b3','#fff'][(i*3+k*5)%6]}"/>`));
+  h+=`<path d="M0 44 1000 26V0H0Z" fill="#1b1839"/>`+rep(6,i=>r(84+i*170,8,5,80,'#c9c4d9')+`<path d="M89 ${8}l34 12-34 12z" transform="translate(${i*170} 0)" fill="${HORSES[i%4].c}"/>`);
+  h+=`<rect y="150" width="1000" height="16" fill="#f7f3ff"/>`+rep(25,i=>r(i*42,150,6,34,'#f7f3ff'));
+  for(let c=0;c<=LEN;c++)h+=`<rect x="${STARTX+(c-1)*STEPX+0}" y="184" width="${STEPX}" height="436" fill="${c%2?'#36a05e':'#2f8f52'}"/>`;
+  LANEY.forEach((y,i)=>{h+=`<rect y="${y+22}" width="1000" height="3" fill="#fff" opacity=".35"/><rect x="0" y="${y-74}" width="46" height="96" fill="#1b1839"/><text x="23" y="${y-14}" text-anchor="middle" class="t-sign" font-size="26" fill="#ffc61e">${i+1}</text>`});
+  for(let k=1;k<LEN;k++){const x=hurdleX(k);h+=`<rect x="${x-9}" y="188" width="18" height="388" rx="8" fill="#1f6b3c"/>`+rep(13,i=>`<circle cx="${x+(i%2?5:-5)}" cy="${198+i*30}" r="9" fill="#2a8549"/>`)+`<text x="${x}" y="608" text-anchor="middle" class="t-label" font-size="24" fill="#fff">${k}</text>`}
+  const fx=STARTX+LEN*STEPX-14;
+  h+=rep(21,i=>rep(2,k=>r(fx+k*14,186+i*20,14,20,(i+k)%2?'#111':'#fff')));
+  h+=`<g id="hmarks"></g><g id="hlanes">${HORSES.map((_,i)=>`<g class="rh" id="rh${i}">${horseArt(i)}</g>`).join('')}</g>`;
+  return h;
+}
+const hurdleX=k=>STARTX+k*STEPX-50;
+function renderTrack(){
+  HORSES.forEach((_,i)=>{document.getElementById('rh'+i).style.transform=`translate(${STARTX+RP.pos[i]*STEPX}px,${LANEY[i]}px)`});
+  document.getElementById('hmarks').innerHTML=RP.hurd.filter(x=>x.open).map(x=>{const px=hurdleX(x.k),H=HORSES[x.h];
+    return `<g transform="translate(${px} ${LANEY[x.h]-40})"><circle r="19" fill="${H.c}" stroke="#fff" stroke-width="3"/><path d="${H.em}" fill="#fff"/></g>`}).join('');
+}
+function backers(h){return RS.players.filter(p=>p.horse===h)}
+function raceReset(){
+  RP={phase:'bet',pos:[0,0,0,0],deck:shuffle([0,1,2,3].flatMap(h=>Array(12).fill(h))),di:0,hurd:Array.from({length:LEN-1},(_,i)=>({k:i+1,h:Math.floor(Math.random()*4),open:false})),lead:-1,call:'',give:0,auto:null};
+}
+function raceStart(){
+  raceReset();RP.phase='race';RP.call='En ze zijn vertrokken!';saveRace();renderRace();
+}
+function raceTick(){
+  if(RP.phase!=='race')return;
+  const t=RP.deck[RP.di++%RP.deck.length],H=HORSES[t];
+  RP.pos[t]++;RP.call=H.n+' pakt een lengte.';
+  const el=document.getElementById('rh'+t);el.classList.add('running');setTimeout(()=>el.classList.remove('running'),520);
+  if(RP.pos[t]>=LEN)return raceEnd(t);
+  const top=Math.max(...RP.pos);
+  if(RP.pos[t]===top&&RP.lead!==t&&RP.pos.filter(p=>p===top).length===1){RP.lead=t;RP.call=H.n+' neemt de leiding!'}
+  const next=RP.hurd.find(x=>!x.open);
+  if(next&&Math.min(...RP.pos)>=next.k){
+    next.open=true;const B=HORSES[next.h];
+    if(RP.pos[next.h]>0)RP.pos[next.h]--;
+    backers(next.h).forEach(p=>p.sips++);
+    RP.call=B.n+' weigert hindernis '+next.k+' en zakt een lengte terug. Wie op '+B.n+' wedde, drinkt 1 slok.';
+  }
+  renderRace();
+}
+function raceEnd(t){
+  clearInterval(RP.auto);RP.auto=null;RP.phase='end';RP.win=t;
+  RS.players.forEach(p=>{if(p.horse!==t)p.sips+=p.bet});
+  RP.give=RS.players.filter(p=>p.horse===t).reduce((a,p)=>a+p.bet*2,0);
+  saveRace();renderRace();
+}
+function renderRace(){
+  renderTrack();
+  const el=document.getElementById('raceside'),on=(i,f,ev='click')=>{const e=document.getElementById(i);if(e)e.addEventListener(ev,f)};
+  const silk=h=>`<svg viewBox="-14 -14 28 28" aria-hidden="true"><circle r="13" fill="${HORSES[h].c}"/><path d="${HORSES[h].em}" fill="#fff"/></svg>`;
+  const score=`<div class="plate"><table class="tbl"><thead><tr><th>Gokker</th><th>Paard</th><th>Inzet</th><th>Slokken</th></tr></thead><tbody>${RS.players.map(p=>`<tr><td>${esc(p.nm)}</td><td>${HORSES[p.horse].n}</td><td>${p.bet}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table></div>`;
+  const help=`<div class="plate"><details><summary>Spelregels</summary><div class="helptext"><p>Zet slokken in op een paard. Na elke galop rukt één paard een lengte op.</p><p>Staan alle paarden voorbij een hindernis, dan weigert daar een willekeurig paard: het zakt een lengte terug en wie erop wedde, drinkt 1 slok.</p><p>Wie als eerste over de meet komt, wint. Wie op het verkeerde paard wedde, drinkt de inzet. Wie goed gokte, deelt het dubbele van de inzet uit.</p></div></details></div>`;
+  if(RP.phase==='bet'){
+    el.innerHTML=`<div class="plate stack"><p class="lead">De bookmaker neemt nog inzetten aan.</p>
+     <div class="field"><label for="rcount">Gokkers</label><select id="rcount">${[2,3,4,5,6,7,8].map(n=>`<option ${n===RS.players.length?'selected':''}>${n}</option>`).join('')}</select></div>
+     ${RS.players.map((p,i)=>`<div class="betrow"><input id="rn${i}" maxlength="14" aria-label="Naam gokker ${i+1}" value="${esc(p.nm)}"><div class="horsepick" role="group" aria-label="Paard van ${esc(p.nm)}">${HORSES.map((H,h)=>`<button data-pl="${i}" data-h="${h}" aria-pressed="${p.horse===h}" title="${H.n}" aria-label="${H.n}">${silk(h)}</button>`).join('')}</div><select id="rb${i}" aria-label="Inzet in slokken">${[1,2,3,4,5].map(n=>`<option ${n===p.bet?'selected':''}>${n}</option>`).join('')}</select></div>`).join('')}
+     <div class="legendh">${HORSES.map((H,h)=>`<span>${silk(h)}${H.n}</span>`).join('')}</div>
+     <button class="btn" id="rstart">Naar de startboxen</button>
+     <p class="small">Voor 18+. Water of frisdrank telt net zo goed. De inzet is in slokken, nooit in geld.</p></div>${help}`;
+    on('rcount',e=>{const n=+e.target.value;RS.players=Array.from({length:n},(_,i)=>RS.players[i]||{nm:raceDefaults[i],horse:i%4,bet:2,sips:0});renderRace()},'change');
+    RS.players.forEach((p,i)=>{on('rn'+i,e=>{p.nm=e.target.value.trim()||('Gokker '+(i+1))},'input');on('rb'+i,e=>{p.bet=+e.target.value},'change')});
+    el.querySelectorAll('[data-pl]').forEach(b=>b.addEventListener('click',()=>{RS.players[+b.dataset.pl].horse=+b.dataset.h;renderRace()}));
+    on('rstart',raceStart);
+  }else if(RP.phase==='race'){
+    el.innerHTML=`<div class="plate"><p class="callout" aria-live="polite">${esc(RP.call)}</p><div class="action"><button class="btn" id="rgo">Galop</button><button class="btn alt autobtn" id="rauto">${RP.auto?'Pauze':'Automatisch'}</button></div></div>${score}${help}`;
+    on('rgo',raceTick);
+    on('rauto',()=>{if(RP.auto){clearInterval(RP.auto);RP.auto=null}else RP.auto=setInterval(raceTick,matchMedia('(prefers-reduced-motion:reduce)').matches?1200:800);renderRace()});
+  }else{
+    const H=HORSES[RP.win],losers=RS.players.filter(p=>p.horse!==RP.win),win=RS.players.filter(p=>p.horse===RP.win);
+    el.innerHTML=`<div class="plate stack"><p class="lead">${H.n} wint!</p><p class="hint" style="min-height:0">${win.length?esc(win.map(p=>p.nm).join(', '))+' gokte goed.':'Niemand gokte goed. De bookmaker lacht.'}</p></div>${score}${help}`;
+    document.getElementById('rmodal').innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Uitslag"><div class="card k-win"><header><span>Uitslag</span><span>${H.n}</span></header><div class="body"><h3>${H.n} wint de race</h3>
+     ${losers.length?`<p>${losers.map(p=>esc(p.nm)+' drinkt '+p.bet).join(', ')}.</p>`:'<p>Iedereen gokte goed. Niemand drinkt zijn inzet.</p>'}
+     ${RP.give>0?`<p style="font-weight:700;font-size:15px">De winnaars delen ${RP.give} ${RP.give===1?'slok':'slokken'} uit. Tik per slok op wie drinkt.</p><div class="picks">${RS.players.map((p,i)=>`<button data-g="${i}">${esc(p.nm)}<em>${p.got?'+'+p.got:'&nbsp;'}</em></button>`).join('')}</div>`:`<button class="btn" id="rnext">Volgende race</button>`}
+     </div></div></div>`;
+    document.querySelectorAll('[data-g]').forEach(b=>b.addEventListener('click',()=>{const p=RS.players[+b.dataset.g];p.sips++;p.got=(p.got||0)+1;RP.give--;renderRace()}));
+    on('rnext',()=>{RS.players.forEach(p=>delete p.got);document.getElementById('rmodal').innerHTML='';raceReset();saveRace();renderRace()});
+    return;
+  }
+  document.getElementById('rmodal').innerHTML='';
+}
+function raceInit(){document.getElementById('track').innerHTML=raceStatic();raceReset()}
+function stopAuto(){if(RP.auto){clearInterval(RP.auto);RP.auto=null}}
+
+/* ---------- keuzemenu ---------- */
+const TUK_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#2b4f45"/><rect y="62" width="320" height="56" fill="#3a3850"/><rect x="132" width="56" height="180" fill="#3a3850"/><path d="M0 90h320M160 0v180" stroke="#e8e2ff" stroke-width="3" stroke-dasharray="18 14" opacity=".55"/><rect x="70" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="73" y="75" width="60" height="30" rx="12" fill="#ffc61e"/><rect x="88" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><rect x="186" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="189" y="75" width="60" height="30" rx="12" fill="#7a5cf0"/><rect x="204" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><use href="#s-S" x="28" y="10" width="46" height="46"/><use href="#s-4" x="246" y="124" width="46" height="46"/><rect x="214" y="12" width="44" height="44" rx="8" fill="#ff8a1f"/><text x="236" y="50" text-anchor="middle" class="t-sign" font-size="36" fill="#2b1400">?</text></svg>`;
+const RACE_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#36a05e"/><rect width="320" height="52" fill="#2b2a5a"/><rect y="46" width="320" height="10" fill="#f7f3ff"/><rect x="214" y="58" width="14" height="122" rx="6" fill="#1f6b3c"/><g transform="translate(92 158) scale(.8)">${horseArt(0)}</g><g transform="translate(186 110) scale(.62)">${horseArt(2)}</g><g transform="translate(260 164) scale(.72)">${horseArt(3)}</g></svg>`;
+const GAMES=[
+ {id:'zatte-tuk-tuk',n:'Zatte Tuk-Tuk',d:'Rij studenten door Gent van de Overpoort tot de Sint-Pietersabdij en trek kanskaarten met drinkopdrachten.',cats:['Drankspel','Bordspel'],pl:'2 tot 6 spelers',art:TUK_ART},
+ {id:'paardenrace',n:'Paardenrace',d:'Zet slokken in op je paard en volg de race over de hindernissen tot aan de meet.',cats:['Drankspel','Wedspel'],pl:'2 tot 8 spelers',art:RACE_ART},
+ {n:'Kingsen',d:'Trek een kaart en volg de regel die erbij hoort.',cats:['Drankspel','Kaartspel'],pl:'3 tot 10 spelers',art:'K'},
+ {n:'Mexicaantje',d:'Dobbel onder de beker en bluf je door de ronde.',cats:['Drankspel','Dobbelspel'],pl:'3 tot 10 spelers',art:'21'},
+ {n:'Ik heb nog nooit',d:'Stellingen voor de tafel. Wie het wel deed, drinkt.',cats:['Drankspel','Praatspel'],pl:'3 of meer spelers',art:'?!'}
+];
+const CATS=['Alle',...new Set(GAMES.flatMap(g=>g.cats))];
+let cat='Alle',query='';
+function renderMenu(){
+  document.getElementById('chips').innerHTML=CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${c}</button>`).join('');
+  const q=query.toLowerCase(), list=GAMES.filter(g=>(cat==='Alle'||g.cats.includes(cat))&&(g.n+' '+g.d).toLowerCase().includes(q));
+  document.getElementById('tiles').innerHTML=list.map(g=>{
+    const inner=`<div class="art">${g.art}</div><div class="info"><h2>${g.n}</h2><p>${g.d}</p><div class="meta"><span>${g.pl}</span><span class="${g.id?'play':''}">${g.id?'Spelen':'Binnenkort'}</span></div></div>`;
+    return g.id?`<button class="tile" data-game="${g.id}">${inner}</button>`:`<div class="tile soon">${inner}</div>`;
+  }).join('');
+  document.getElementById('empty').hidden=list.length>0;
+}
+function route(){
+  const inGame=location.hash==='#zatte-tuk-tuk', inRace=location.hash==='#paardenrace';
+  document.getElementById('menu').hidden=inGame||inRace;
+  document.getElementById('game').hidden=!inGame;
+  document.getElementById('race').hidden=!inRace;
+  document.getElementById('back').hidden=!(inGame||inRace);
+  document.getElementById('tag').hidden=inGame||inRace;
+  document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':'Spel<span>café</span>';
+  stopAuto();
+  if(inGame){render();if(zoom==='near')focusOn(G?G.P[G.cur].pos:nid.ku,true)}
+  else if(inRace)renderRace();
+  else renderMenu();
+}
+function go(h){location.hash=h;route()}
+document.getElementById('home').addEventListener('click',()=>go(''));
+document.getElementById('back').addEventListener('click',()=>go(''));
+document.getElementById('search').addEventListener('input',e=>{query=e.target.value.trim();renderMenu()});
+document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(b){cat=b.dataset.cat;renderMenu()}});
+document.getElementById('tiles').addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(b)go(b.dataset.game)});
+addEventListener('hashchange',route);
+
+/* ---------- opstart ---------- */
+function start(data){
+  if(data&&data.G)G=data.G;
+  raceInit();
+  route();drive();
+  if(window.claude&&claude.use)claude.use('room').then(r=>{if(r){roomCap=r;if(!G)render()}}).catch(()=>{});
+}
+try{window.claude?.hot?.snapshot(()=>({G}))}catch(e){}
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+window.__tt={get G(){return G},opts,validCells,ranking,wire,setFast(){DELAY=0;ROLLTIME=0}};
+</script>
+
+</body>
+</html>
