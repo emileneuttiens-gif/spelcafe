@@ -182,7 +182,7 @@ button.tile:hover{border-color:var(--taxi)}
 .linkbtn{display:block;text-align:center;border-radius:8px;padding:12px;background:var(--taxi);color:var(--taxi-ink);font-weight:700;text-decoration:none}
 .zat{display:block;height:6px;width:100%;min-width:70px;background:var(--dusk);border-radius:3px;overflow:hidden;margin-top:3px}
 .zat i{display:block;height:100%;background:linear-gradient(90deg,#8ed13f,#ffc61e,#e0303a)}
-#stuur{position:fixed;inset:0;z-index:40;background:var(--dusk);overflow:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+#stuur{position:fixed;inset:0;z-index:40;transform-origin:50% 50%;background:var(--dusk);overflow:auto;touch-action:none;user-select:none;-webkit-user-select:none}
 .st{display:grid;gap:12px;padding:32px 20px;max-width:420px;margin-inline:auto}
 .st input{width:100%;background:var(--dusk-2);border:1px solid var(--line);border-radius:6px;padding:12px;font-size:18px;user-select:text;-webkit-user-select:text}
 .st label{font:600 14px/1 var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -197,19 +197,16 @@ button.tile:hover{border-color:var(--taxi)}
 .stbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tilt .stbtns{display:none}
 .stbtns button{border:0;border-radius:10px;height:96px;background:var(--dusk-3);color:var(--ink);font:700 19px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;touch-action:none}
-.stturn{display:none;text-align:center;font-weight:700;color:var(--taxi)}
-@media (orientation:portrait){.stturn{display:block}}
-@media (orientation:landscape){
-  .stplay{grid-template-columns:1fr 1.15fr 1fr;grid-template-rows:auto auto minmax(0,1fr) auto;grid-template-areas:"l name r" "l msg r" "l wheel r" "l wheel r";gap:8px;padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px));padding-block:8px}
-  .stname{grid-area:name;text-align:center;font-size:15px}
-  .stmsg{grid-area:msg;min-height:44px;padding:4px}
-  .stmsg b{font-size:15px}.stmsg span{font-size:13px}
-  #stwheel{grid-area:wheel}
-  .stbtns{display:contents}
-  .stbtns button{height:auto;min-height:0}
-  #stl{grid-area:l}#str{grid-area:r}
-  .tilt .stbtns{display:none}
-}
+.stplay{grid-template-columns:1fr 1.15fr 1fr;grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"l name r" "l msg r" "l wheel r";gap:8px;padding:8px max(10px,env(safe-area-inset-left,0px))}
+.stname{grid-area:name;text-align:center;font-size:15px}
+.stmsg{grid-area:msg;min-height:44px;padding:4px}
+.stmsg b{font-size:15px}.stmsg span{font-size:13px}
+#stwheel{grid-area:wheel}
+.stbtns{display:contents}
+.stbtns button{height:auto;min-height:0}
+#stl{grid-area:l}#str{grid-area:r}
+.tilt .stbtns{display:none}
+.tilt.stplay{grid-template-columns:minmax(0,1fr);grid-template-areas:"name" "msg" "wheel"}
 .stbtns .on{outline:4px solid var(--ink)}
 .busmain{min-width:0;display:grid;gap:14px}
 #busscene{display:block;width:100%;height:auto;border-radius:8px;background:#3a2f7a}
@@ -1678,12 +1675,12 @@ function fDraw(){
 let S={conn:null,tilt:0,boost:0,left:0,right:0,timer:0,tiltOk:false,lock:null};
 function stuurScreen(html){document.getElementById('stuur').innerHTML=html}
 function stuurJoin(code){
-  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Draai je gsm horizontaal en hou hem vast als een stuur. Alleen voor 18+.</p></div>`);
+  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Na het verbinden staat het stuur vast in liggende stand: hou je gsm horizontaal vast als een stuur. Zet automatisch draaien van je scherm uit, dan blijft het beeld helemaal stil. Alleen voor 18+.</p></div>`);
   document.getElementById('stgo').addEventListener('click',async()=>{
     const nm=document.getElementById('stnm').value.trim()||'Fietser';
     try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){const r=await DeviceOrientationEvent.requestPermission();S.tiltOk=r==='granted'}else S.tiltOk='DeviceOrientationEvent' in window}catch(e){S.tiltOk=false}
     try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}
-    try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape')}catch(e){}
+    try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape-primary')}catch(e){}
     stuurConnect(code,nm);
   });
 }
@@ -1712,25 +1709,40 @@ function stuurData(m){
 }
 function stuurMsg(a,b,bad){const e=document.getElementById('stmsg');if(e){e.className='stmsg'+(bad?' bad':'');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`}}
 function stuurPlay(){
-  stuurScreen(`<div class="stplay ${S.seen?'tilt':''}" style="--me:${S.c}"><p class="stturn">Draai je gsm horizontaal</p><div class="stname">${esc(S.n)}<span class="zat"><i id="stz" style="width:0"></i></span></div><div id="stmsg" class="stmsg"></div>
+  {const a=scrAngle();S.base=innerWidth>innerHeight&&(a===90||a===270)?a:90;S.fixed=true}
+  stuurScreen(`<div class="stplay ${S.seen?'tilt':''}" style="--me:${S.c}"><div class="stname">${esc(S.n)}<span class="zat"><i id="stz" style="width:0"></i></span></div><div id="stmsg" class="stmsg"></div>
    <svg id="stwheel" viewBox="-100 -100 200 200" aria-hidden="true"><circle r="86" fill="none" stroke="${S.c}" stroke-width="16"/><path d="M-82 0H82M0 0V82" stroke="${S.c}" stroke-width="12"/><circle r="20" fill="${S.c}"/></svg>
    <div class="stbtns"><button id="stl" aria-label="Links">Links</button><button id="str" aria-label="Rechts">Rechts</button></div></div>`);
   const hold=(id,k)=>{const b=document.getElementById(id);const d=e=>{e.preventDefault();S[k]=1;b.classList.add('on')},u=e=>{S[k]=0;b.classList.remove('on')};b.addEventListener('pointerdown',d);['pointerup','pointercancel','pointerleave'].forEach(v=>b.addEventListener(v,u));b.addEventListener('contextmenu',e=>e.preventDefault())};
   hold('stl','left');hold('str','right');
-  clearInterval(S.timer);
+  stuurFix();clearInterval(S.timer);
   S.timer=setInterval(()=>{
     const btn=S.right-S.left, x=btn||S.tilt;
     const w=document.getElementById('stwheel');if(w)w.style.transform=`rotate(${x*80}deg)`;
     if(S.conn&&S.conn.open)try{S.conn.send({s:[+x.toFixed(2)]})}catch(e){}
   },66);
 }
+function scrAngle(){const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0);return((a%360)+360)%360}
+function stuurFix(){
+  const el=document.getElementById('stuur');if(!S.fixed||!el)return;
+  const vw=innerWidth,vh=innerHeight,a=scrAngle(),land=vw>vh;
+  const cur=land?(a===90||a===270?a:S.base):(a===0||a===180?a:0);
+  const r=((S.base-cur+540)%360)-180,swap=Math.abs(r)===90,W=swap?vh:vw,H=swap?vw:vh;
+  Object.assign(el.style,{inset:'auto',width:W+'px',height:H+'px',left:(vw-W)/2+'px',top:(vh-H)/2+'px',transform:r?`rotate(${r}deg)`:'none'});
+}
+addEventListener('resize',stuurFix);addEventListener('orientationchange',()=>{stuurFix();setTimeout(stuurFix,120);setTimeout(stuurFix,400)});
 addEventListener('deviceorientation',e=>{
-  if(e.gamma==null)return;
+  if(e.gamma==null||e.beta==null)return;
   if(!S.seen){S.seen=1;const pl=document.querySelector('.stplay');if(pl)pl.classList.add('tilt')}
-  const ang=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
-  const v=ang===90?e.beta:(ang===270||ang===-90)?-e.beta:e.gamma;
-  const d=Math.abs(v)<4?0:v;
-  S.tilt=Math.max(-1,Math.min(1,d/28));
+  const b=e.beta*Math.PI/180,g=e.gamma*Math.PI/180,gx=Math.sin(g)*Math.cos(b),gy=-Math.sin(b);
+  const mag=Math.hypot(gx,gy);if(mag<.3)return;
+  if(S.base==null||!S.fixed)return;
+  if(!S.calib){S.calib=1;const a=scrAngle();if((a===0||a===180)&&Math.abs(gx)>Math.abs(gy)){S.base=gx<0?90:270;stuurFix()}}
+  let phi=S.base===90?Math.atan2(-gy,-gx):Math.atan2(gy,gx);
+  if(Math.abs(phi)>2.6){S.flip=(S.flip||0)+1;if(S.flip>45){S.base=S.base===90?270:90;S.flip=0;stuurFix()}return}
+  S.flip=0;
+  const deg=phi*180/Math.PI,d=Math.abs(deg)<3?0:deg-Math.sign(deg)*3,t=Math.max(-1,Math.min(1,d/27));
+  S.tilt=(S.tilt||0)+(t-(S.tilt||0))*.45;
 });
 
 /* ---------- keuzemenu ---------- */
