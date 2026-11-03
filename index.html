@@ -169,8 +169,10 @@ button.tile:hover{border-color:var(--taxi)}
 .tile .play{color:var(--taxi)}
 .tile.soon .art,.tile.soon h2{opacity:.6}
 .empty{color:var(--muted)}
-.fmain{min-width:0}
-#fcv{display:block;width:100%;height:auto;border-radius:8px;background:#2b2a5a}
+.fmain{min-width:0;position:relative}
+#fcv,#fgl{display:block;width:100%;height:auto;border-radius:8px}
+#fgl{aspect-ratio:16/9;background:#2b2a5a}
+#fgl:not([hidden])+#fcv{position:absolute;inset:0;height:100%;pointer-events:none}
 .qr{background:#fff;border-radius:8px;padding:8px;width:min(100%,220px);margin-inline:auto}
 .qr svg{display:block;width:100%;height:auto}
 .url{overflow-wrap:anywhere;text-align:center}
@@ -283,7 +285,7 @@ button.tile:hover{border-color:var(--taxi)}
 
 <div id="fiets" hidden>
   <div class="app">
-    <div class="fmain"><canvas id="fcv" width="960" height="540" aria-label="Fietsrit van de Overpoort naar Bar des Amis"></canvas></div>
+    <div class="fmain"><canvas id="fgl" width="960" height="540" hidden></canvas><canvas id="fcv" width="960" height="540" aria-label="Fietsrit van de Overpoort naar Bar des Amis"></canvas></div>
     <div class="side" id="fside"></div>
   </div>
 </div>
@@ -1280,7 +1282,7 @@ function fMsg(conn,m){
     const name=m.j.trim().slice(0,12)||'Fietser';
     if(!p){if(F.phase!=='lobby'){conn.send({full:'De rit is al bezig. Wacht op de volgende.'});return}
       p=fAdd(conn.peer,name,conn);if(!p){conn.send({full:'De fietsenstalling is vol: maximum 4 fietsers.'});return}}
-    conn.send({ok:1,c:p.c,n:p.nm});fPanel();return;
+    conn.send({ok:1,c:p.c,n:p.nm});fPanel();fDraw();return;
   }
   const p=F.players.find(x=>x.conn===conn);
   if(p&&Array.isArray(m.s)){p.in=Math.max(-1,Math.min(1,+m.s[0]||0));p.boost=m.s[1]?1:0}
@@ -1306,7 +1308,7 @@ function fStart(){
   F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*80,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false});fSend(p,{go:1})});
   F.last=performance.now();fPanel();F.raf=requestAnimationFrame(fLoop);
 }
-function fFloat(p,t,col){F.floats.push({x:roadX(F.cam+FH-p.py)+p.x,y:p.py-40,t,col,a:1.4})}
+function fFloat(p,t,col){const s=F.cam+FH-p.py;F.floats.push({x:roadX(s)+p.x,y:p.py-40,ws:s,wx:roadX(s)-FW/2+p.x,h:0,t,col,a:1.4})}
 function fFall(p,why,n=1){
   if(p.safe>0)return;
   p.stun=1.3;p.safe=2.6;p.falls++;p.sips+=n;p.vx=0;p.py=Math.min(505,p.py+45);
@@ -1340,7 +1342,7 @@ function fStep(dt){
       else if(OBJ[it.k]&&dx<OBJ[it.k].r+14){it.hit=1;fFall(p,OBJ[it.k].n)}
     }
   });
-  F.floats.forEach(f=>{f.a-=dt;f.y-=26*dt});F.floats=F.floats.filter(f=>f.a>0);
+  F.floats.forEach(f=>{f.a-=dt;f.y-=26*dt;f.h+=34*dt});F.floats=F.floats.filter(f=>f.a>0);
   if(F.cam+FH-430>=TOTAL)fEnd();
 }
 function fScore(p){return p.pints*10-p.falls*15+Math.round((505-p.py)/4)}
@@ -1397,7 +1399,7 @@ function fBar(c,y){
   c.fillStyle='#14122c';c.fillRect(cx-44,y-68,88,68);
   c.fillStyle='#c22f3a';c.beginPath();c.moveTo(cx-300,y-70);c.lineTo(cx+300,y-70);c.lineTo(cx+320,y-50);c.lineTo(cx-320,y-50);c.fill();
 }
-function fDraw(){
+function fDraw2D(){
   const cv=document.getElementById('fcv');if(!cv)return;const c=cv.getContext('2d');
   const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
   const top=F.players.reduce((a,p)=>Math.max(a,p.zat),0);
@@ -1424,8 +1426,7 @@ function fDraw(){
   c.textAlign='center';c.font='700 22px "Barlow Condensed",sans-serif';
   F.floats.forEach(f=>{c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,f.x,f.y);c.fillStyle=f.col;c.fillText(f.t,f.x,f.y)});c.globalAlpha=1;
   c.restore();
-  c.fillStyle='#14122c';c.fillRect(14,14,300,36);c.fillStyle='#ffc61e';c.font='22px Bungee,Impact,sans-serif';c.textAlign='left';c.fillText(sectionAt(s0+300)[1].slice(0,20),24,40);
-  const prog=Math.min(1,s0/TOTAL);c.fillStyle='rgba(20,18,44,.8)';c.fillRect(14,FH-22,FW-28,10);c.fillStyle='#ffc61e';c.fillRect(14,FH-22,(FW-28)*prog,10);
+  fHudCanvas(c,s0);
 }
 function fHud(){const e=document.getElementById('ftable');if(e)e.innerHTML=fTable()}
 const fTable=()=>`<table class="tbl"><thead><tr><th>Fietser</th><th>Pint</th><th>Val</th><th>Slok</th></tr></thead><tbody>${F.players.map(p=>`<tr><td><div class="who"><span class="dot" style="background:${p.c}"></span><span>${esc(p.nm)}${p.gone?' (weg)':''}<span class="zat"><i style="width:${Math.round(p.zat*100)}%"></i></span></span></div></td><td>${p.pints}</td><td>${p.falls}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table>`;
@@ -1458,6 +1459,160 @@ function fPanel(){
 }
 addEventListener('keydown',e=>{if(location.hash==='#dronken-fietsen'&&F.phase==='play'&&/Arrow|KeyA|KeyD|KeyW/.test(e.code)){F.keys[e.code]=1;e.preventDefault()}});
 addEventListener('keyup',e=>{F.keys[e.code]=0});
+
+/* ---------- 3D-weergave van de rit: één camera achter alle fietsers ---------- */
+let T3=null,t3state='idle';
+function f3Load(){
+  if(t3state!=='idle')return;t3state='loading';
+  const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+  sc.onload=async()=>{try{await document.fonts.ready;f3Build();t3state='ready';document.getElementById('fgl').hidden=false;fDraw()}catch(e){t3state='failed'}};
+  sc.onerror=()=>{t3state='failed'};document.head.appendChild(sc);
+}
+const w3x=s=>roadX(s)-FW/2;
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+function signMesh(text,w,h,bg,fg,font){
+  const tx=canvasTex(512,Math.round(512*h/w),(c,W,H)=>{c.fillStyle=bg;c.fillRect(0,0,W,H);c.fillStyle=fg;c.font=(font||Math.round(H*.56))+'px Bungee,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,W/2,H/2+4,W-24)});
+  return new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide}));
+}
+const std=(c,o)=>new THREE.MeshLambertMaterial({color:c,...o});
+function box(w,h,d,col,x,y,z,g){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof col==='number'||typeof col==='string'?std(col):col);m.position.set(x,y,z);if(g)g.add(m);return m}
+function cyl(a,b,h,col,x,y,z,g,seg=12){const m=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,seg),std(col));m.position.set(x,y,z);if(g)g.add(m);return m}
+function f3Build(){
+  const gl=document.getElementById('fgl');
+  const R3=new THREE.WebGLRenderer({canvas:gl,antialias:true,preserveDrawingBuffer:true});
+  R3.setPixelRatio(Math.min(devicePixelRatio||1,2));R3.setSize(FW,FH,false);
+  const sc=new THREE.Scene();sc.background=new THREE.Color('#e0784f');sc.fog=new THREE.Fog('#a8546a',1200,2900);
+  sc.add(new THREE.HemisphereLight('#ffd9b0','#3a2f7a',.82));
+  const sun=new THREE.DirectionalLight('#ffc48a',.5);sun.position.set(-300,500,300);sc.add(sun);
+  const cam=new THREE.PerspectiveCamera(58,FW/FH,1,4200);
+  const sky=new THREE.Mesh(new THREE.PlaneGeometry(9000,2600),new THREE.MeshBasicMaterial({map:canvasTex(16,256,(c,W,H)=>{const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#2b2360');g.addColorStop(.55,'#8c3f78');g.addColorStop(1,'#ff9a5a');c.fillStyle=g;c.fillRect(0,0,W,H)}),fog:false}));
+  sc.add(sky);
+  /* weg, stoepen en grond als één lint langs de bochten */
+  const strip=(off0,off1,y,colFn)=>{
+    const pos=[],col=[],idx=[],c=new THREE.Color();let n=0;
+    for(let s=-700;s<=TOTAL+900;s+=60){const x=w3x(s);pos.push(x+off0,y,-s,x+off1,y,-s);c.set(colFn(s));col.push(c.r,c.g,c.b,c.r,c.g,c.b);if(n){const a=(n-1)*2;idx.push(a,a+1,a+2,a+1,a+3,a+2)}n++}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();
+    return new THREE.Mesh(g,new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
+  };
+  const cob=s=>/Vrijdagmarkt|Vlasmarkt/.test(sectionAt(s)[1]);
+  sc.add(strip(-1800,1800,-1,()=>'#2b2640'));
+  sc.add(strip(-ROADW/2,ROADW/2,0,s=>cob(s)?'#6a6780':'#46435f'));
+  sc.add(strip(-ROADW/2-34,-ROADW/2,6,()=>'#a09db0'),strip(ROADW/2,ROADW/2+34,6,()=>'#a09db0'));
+  /* tramsporen en middenlijn */
+  const dash=new THREE.InstancedMesh(new THREE.BoxGeometry(7,1,54),new THREE.MeshBasicMaterial({color:'#e8e2ff'}),Math.ceil(TOTAL/130)+8),mat=new THREE.Matrix4();
+  for(let i=0;i<dash.count;i++){const s=i*130-300;mat.makeTranslation(w3x(s),1.4,-s);dash.setMatrixAt(i,mat)}sc.add(dash);
+  /* gevels met trapgevels */
+  const skip=[[4700,5500,1],[7500,8300,-1],[10600,11700,1],[12300,13000,-1],[13900,14600,1],[16700,17700,-1]];
+  const wtex=canvasTex(128,128,(c)=>{c.fillStyle='#fff';c.fillRect(0,0,128,128);for(let y=0;y<4;y++)for(let x=0;x<3;x++){c.fillStyle=(x*5+y*3)%4?'#ffcf66':'#4a4670';c.fillRect(12+x*38,10+y*29,24,19)}});
+  const houses=[];
+  for(let s=-500;s<TOTAL+500;s+=132)for(const side of[-1,1]){if(skip.some(([a,b,d])=>d===side&&s>a&&s<b))continue;houses.push({s,side})}
+  const hg=new THREE.BoxGeometry(1,1,1),hm=new THREE.InstancedMesh(hg,new THREE.MeshLambertMaterial({map:wtex}),houses.length);
+  const shape=new THREE.Shape();const st=[[-.5,0],[-.5,.14],[-.36,.14],[-.36,.3],[-.22,.3],[-.22,.46],[-.08,.46],[-.08,.6],[.08,.6],[.08,.46],[.22,.46],[.22,.3],[.36,.3],[.36,.14],[.5,.14],[.5,0]];st.forEach(([x,y],i)=>i?shape.lineTo(x,y):shape.moveTo(x,y));
+  const gg=new THREE.ExtrudeGeometry(shape,{depth:.08,bevelEnabled:false});gg.rotateY(Math.PI/2);
+  const gm=new THREE.InstancedMesh(gg,new THREE.MeshLambertMaterial({color:'#fff'}),houses.length);
+  const pal=['#a2523a','#c98a4b','#8f6a5a','#b86a4a','#7f8a5c','#6f6c84','#d0a868','#8c3f4a'],c=new THREE.Color(),q=new THREE.Quaternion(),e=new THREE.Vector3();
+  houses.forEach((h,i)=>{
+    const seed=(Math.abs(h.s)/132*7+(h.side>0?3:0))%97,H=170+(seed*13)%120,W=128,x=w3x(h.s)+h.side*(ROADW/2+34+140);
+    mat.compose(new THREE.Vector3(x,H/2,-h.s),q,new THREE.Vector3(280,H,W));hm.setMatrixAt(i,mat);
+    c.set(pal[Math.floor(seed)%pal.length]);hm.setColorAt(i,c);
+    mat.compose(new THREE.Vector3(x-h.side*140+(h.side<0?0:0),H,-h.s),q,new THREE.Vector3(120,W*1.05,W));gm.setMatrixAt(i,mat);gm.setColorAt(i,c);
+  });
+  sc.add(hm,gm);
+  /* straatlantaarns */
+  const lamp=new THREE.InstancedMesh(new THREE.SphereGeometry(9,8,6),new THREE.MeshBasicMaterial({color:'#ffe9a8'}),Math.ceil(TOTAL/320)*2);
+  const pole=new THREE.InstancedMesh(new THREE.CylinderGeometry(2.5,2.5,120,6),std('#23213a'),lamp.count);
+  for(let i=0;i<lamp.count;i++){const s=(i>>1)*320,sd=i%2?1:-1,x=w3x(s)+sd*(ROADW/2+18);mat.makeTranslation(x,124,-s);lamp.setMatrixAt(i,mat);mat.makeTranslation(x,62,-s);pole.setMatrixAt(i,mat)}sc.add(lamp,pole);
+  /* poorten met de naam van de buurt */
+  SECTIONS.forEach(([s0,n])=>{const s=s0+230,g=new THREE.Group(),x=w3x(s);g.position.set(x,0,-s);box(14,330,14,'#14122c',-ROADW/2-6,165,0,g);box(14,330,14,'#14122c',ROADW/2+6,165,0,g);const m=signMesh(n.toUpperCase(),ROADW+30,62,'#14122c','#ffc61e',46);m.position.set(0,306,2);g.add(m);sc.add(g)});
+  /* neon in de Overpoort */
+  ['CAFE','BAR','FRIET','CLUB','PINT','SHOTS','KARAOKE','NACHT'].forEach((t,i)=>{const s=340+i*330,sd=i%2?1:-1,col=['#ff4f8b','#29c7d8','#ffc61e','#8d6bff'][i%4],m=signMesh(t,150,50,'#14122c',col);m.rotation.y=-sd*Math.PI/2;m.position.set(w3x(s)+sd*(ROADW/2+33),140,-s);sc.add(m)});
+  /* herkenbare plekken */
+  const at=(s,side,dist)=>{const g=new THREE.Group();g.position.set(w3x(s)+side*(ROADW/2+dist),0,-s);sc.add(g);return g};
+  { const g=at(5100,1,210),t=canvasTex(64,256,(c,W,H)=>{c.fillStyle='#d6d2dc';c.fillRect(0,0,W,H);for(let y=0;y<22;y++)for(let x=0;x<4;x++){c.fillStyle=y%3?'#ffcf66':'#6f6c84';c.fillRect(7+x*14,6+y*11,9,8)}});
+    box(150,720,150,new THREE.MeshLambertMaterial({map:t}),0,360,0,g);box(190,26,190,'#b9b4c4',0,732,0,g);box(110,80,110,'#4e6d8c',0,785,0,g);box(130,14,130,'#b9b4c4',0,830,0,g);box(380,110,380,'#c6c2cf',0,55,0,g);}
+  { const g=at(7900,-1,230),t=canvasTex(512,256,(c,W,H)=>{c.fillStyle='#a2523a';c.fillRect(0,0,W,H);for(let i=0;i<9;i++){c.fillStyle='#ffd97a';c.fillRect(20+i*54,40,30,70);c.fillRect(20+i*54,150,30,70)}});
+    const b=box(420,300,560,new THREE.MeshLambertMaterial({map:t}),0,150,0,g);const m=signMesh('VOORUIT',360,70,'#c22f3a','#fff');m.rotation.y=Math.PI/2;m.position.set(212,330,0);g.add(m);}
+  { const g=at(11150,1,170);for(let i=0;i<8;i++){const a=i/8*6.283;cyl(5,5,90,'#c9a227',Math.cos(a)*62,45,Math.sin(a)*62,g,6)}const roof=new THREE.Mesh(new THREE.ConeGeometry(92,60,8),std('#3d3a5c'));roof.position.y=120;g.add(roof);cyl(78,78,14,'#8d8a9e',0,7,0,g);
+    for(let i=0;i<6;i++){const z=-460+i*184;cyl(9,12,70,'#5d3f2c',120,35,z,g,6);const l=new THREE.Mesh(new THREE.SphereGeometry(62,10,8),std('#3e9d6a'));l.position.set(120,110,z);g.add(l)} }
+  { const g=at(12650,-1,190);box(170,620,170,'#8d8a9e',0,310,0,g);box(200,26,200,'#6f6c84',0,632,0,g);for(const[x,z]of[[-90,-90],[90,-90],[-90,90],[90,90]]){const c2=new THREE.Mesh(new THREE.ConeGeometry(18,84,8),std('#3d3a5c'));c2.position.set(x,686,z);g.add(c2)}const sp=new THREE.Mesh(new THREE.ConeGeometry(70,240,4),std('#3d3a5c'));sp.position.y=760;sp.rotation.y=.785;g.add(sp);const au=new THREE.Mesh(new THREE.SphereGeometry(20,10,8),std('#ffc61e',{emissive:'#8a6a00'}));au.position.y=892;g.add(au);box(100,150,14,'#14122c',90,560,0,g).visible=false;}
+  { const g=at(14250,1,210);box(210,760,210,'#9a97a8',0,380,0,g);for(let i=0;i<5;i++)for(const[a,b]of[[-1,0],[1,0]]){box(30,34,30,'#9a97a8',a*90,776,-84+i*42,g);box(30,34,30,'#9a97a8',-84+i*42,776,a*90,g)}for(let i=0;i<3;i++)box(10,160,50,'#14122c',-108,500-i*150,0,g);box(460,300,1,'#00000000',0,0,0,g).visible=false;}
+  { const g=at(17200,-1,170);box(110,90,110,'#8d8a9e',0,45,0,g);cyl(20,26,110,'#3f5f58',0,145,0,g);const hd=new THREE.Mesh(new THREE.SphereGeometry(20,10,8),std('#3f5f58'));hd.position.y=222;g.add(hd);const arm=box(12,84,12,'#3f5f58',36,214,0,g);arm.rotation.z=-.8;}
+  /* Bar des Amis, recht voor je */
+  { const s=TOTAL+270,g=new THREE.Group();g.position.set(w3x(s),0,-s);sc.add(g);
+    const t=canvasTex(1024,512,(c,W,H)=>{c.fillStyle='#5a2f3e';c.fillRect(0,0,W,H);for(let i=0;i<6;i++){c.fillStyle='#ffd97a';c.fillRect(60+i*156,50,100,110)}c.fillStyle='#14122c';c.fillRect(130,210,764,96);c.fillStyle='#ff4f8b';c.font='66px Bungee,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('BAR DES AMIS',512,260);c.fillStyle='#ffd97a';c.fillRect(70,340,270,172);c.fillRect(684,340,270,172);c.fillStyle='#14122c';c.fillRect(440,330,144,182)});
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(1000,500),new THREE.MeshBasicMaterial({map:t}));m.position.set(0,250,24);g.add(m);box(1000,500,40,'#3d1f2c',0,250,0,g);box(1040,14,70,'#c22f3a',0,170,50,g);}
+  T3={R3,sc,cam,sky,items:new Map(),riders:[],v:new THREE.Vector3()};
+}
+function f3Item(k){
+  const g=new THREE.Group(),S=1.5;g.scale.set(S,S,S);
+  if(k==='pint'){cyl(13,10,34,'#e8a800',0,30,0,g);const f=new THREE.Mesh(new THREE.SphereGeometry(14,10,6),std('#fff8e6'));f.position.y=48;f.scale.y=.5;g.add(f);const r=new THREE.Mesh(new THREE.RingGeometry(16,22,16),new THREE.MeshBasicMaterial({color:'#ffc61e',side:THREE.DoubleSide,transparent:true,opacity:.5}));r.rotation.x=-1.57;r.position.y=1;g.add(r)}
+  else if(k==='water'){cyl(10,10,34,'#7fd4ff',0,20,0,g);cyl(5,7,10,'#ffffff',0,42,0,g)}
+  else if(k==='paal'){cyl(7,7,62,'#d3202a',0,31,0,g);cyl(7.5,7.5,10,'#ffffff',0,42,0,g)}
+  else if(k==='put'){cyl(26,26,2,'#14122c',0,1,0,g,18)}
+  else if(k==='fiets'){f3Bike(g,'#c9c4d9');g.rotation.y=1.1}
+  else if(k==='duif'){[[-14,0],[12,-9],[6,11]].forEach(([a,b])=>{const d=new THREE.Mesh(new THREE.SphereGeometry(8,8,6),std('#b9b4c4'));d.position.set(a,8,b);d.scale.z=1.4;g.add(d);const h=new THREE.Mesh(new THREE.SphereGeometry(4,6,6),std('#6f6c84'));h.position.set(a,15,b-9);g.add(h)})}
+  else if(k==='tram'){const a=box(120,3,6,'#c9c4d9',0,2,-12,g),b=box(120,3,6,'#c9c4d9',0,2,12,g);g.rotation.y=.5}
+  else if(k==='agent'){cyl(15,15,56,'#16245c',0,28,0,g);box(32,12,32,'#ffef3a',0,44,0,g).scale.y=.8;const h=new THREE.Mesh(new THREE.SphereGeometry(11,10,8),std('#f2d3b3'));h.position.y=68;g.add(h);cyl(13,13,6,'#16245c',0,78,0,g)}
+  else if(k==='mens'){cyl(14,13,56,'#ff4f8b',0,28,0,g);const h=new THREE.Mesh(new THREE.SphereGeometry(11,10,8),std('#f2d3b3'));h.position.y=68;g.add(h)}
+  return g;
+}
+function f3Bike(g,col){
+  for(const z of[-26,26]){const w=new THREE.Mesh(new THREE.TorusGeometry(15,2.6,6,18),std('#14122c'));w.rotation.y=1.57;w.position.set(0,16,z);g.add(w)}
+  const a=box(4,4,52,col,0,30,0,g);box(4,16,4,col,0,24,-14,g);box(30,3,3,'#e8e2ff',0,46,-24,g);return g;
+}
+function f3Rider(p){
+  const g=new THREE.Group();g.scale.set(1.25,1.25,1.25);f3Bike(g,p.c);
+  const body=new THREE.Group();body.position.set(0,40,6);body.rotation.x=-.35;g.add(body);
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(9,12,32,10),std(p.c));t.position.y=14;body.add(t);
+  const h=new THREE.Mesh(new THREE.SphereGeometry(9,10,8),std('#f2d3b3'));h.position.y=38;body.add(h);
+  const hair=new THREE.Mesh(new THREE.SphereGeometry(9.6,10,6,0,6.3,0,1.5),std('#3a2418'));hair.position.y=39;body.add(hair);
+  const legs=[1,-1].map(sd=>{const l=box(6,28,6,'#23213a',sd*8,0,0,g);l.position.y=22;l.position.z=6;return l});
+  const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:canvasTex(256,64,(c,W,H)=>{c.fillStyle='rgba(20,18,44,.8)';c.fillRect(30,6,196,52);c.fillStyle=p.c;c.font='700 40px "Barlow Condensed",sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(p.nm,W/2,H/2+2,186)}),depthTest:false}));
+  tag.scale.set(66,16.5,1);tag.position.y=96;g.add(tag);
+  const sh=new THREE.Mesh(new THREE.CircleGeometry(30,16),new THREE.MeshBasicMaterial({color:'#000',transparent:true,opacity:.28}));sh.rotation.x=-1.57;sh.position.y=1.5;sh.scale.y=1.4;g.add(sh);
+  return{g,legs,key:p.key};
+}
+function f3Sync(){
+  const{sc,items,riders}=T3;
+  if(F.items!==T3.lastItems){items.forEach(m=>sc.remove(m));items.clear();T3.lastItems=F.items;F.items.forEach(it=>{const m=f3Item(it.k);m.visible=false;sc.add(m);items.set(it,m)})}
+  const keys=F.players.map(p=>p.key+p.nm).join();
+  if(keys!==T3.keys){riders.forEach(r=>sc.remove(r.g));riders.length=0;T3.keys=keys;F.players.forEach(p=>{const r=f3Rider(p);sc.add(r.g);riders.push(r)})}
+}
+function f3Render(){
+  f3Sync();
+  const{R3,sc,cam,sky,items,riders,v}=T3,calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const s0=F.cam,top=F.players.reduce((a,p)=>Math.max(a,p.zat),0);
+  items.forEach((m,it)=>{const d=it.s-s0;
+    m.visible=!it.hit&&d>-120&&d<2600;
+    if(m.visible){m.position.set(w3x(it.s)+it.o*(ROADW/2-40),0,-it.s);if(it.k==='pint'||it.k==='water')m.rotation.y=F.t*2}});
+  let sumx=0;
+  F.players.forEach((p,i)=>{const r=riders[i];if(!r)return;const s=s0+FH-p.py,g=r.g;sumx+=p.x;
+    g.position.set(w3x(s)+p.x,0,-s);
+    const fall=p.stun>0;g.rotation.set(0,-p.vx/1800,fall?1.45:-p.vx/650);
+    const pedal=fall?0:F.t*11;r.legs[0].position.y=22+Math.sin(pedal)*5;r.legs[1].position.y=22-Math.sin(pedal)*5;
+    g.visible=!(p.safe>0&&p.stun<=0&&Math.floor(F.t*10)%2);
+  });
+  const avg=F.players.length?sumx/F.players.length:0,cs=s0+FH-430-500;
+  const wob=calm?0:top*Math.sin(F.t*1.3)*34;
+  cam.position.set(w3x(cs+200)+avg*.3+wob,290+(calm?0:top*Math.sin(F.t*.8)*14),-cs);
+  cam.lookAt(w3x(cs+1000)+avg*.2,20,-(cs+1000));
+  cam.rotateZ(calm?0:Math.sin(F.t*.9)*.05*top+(F.shake>0?(Math.random()-.5)*.03:0));
+  cam.fov=58+(calm?0:Math.sin(F.t*1.1)*5*top);cam.updateProjectionMatrix();
+  sky.position.set(cam.position.x,700,cam.position.z-3300);
+  R3.render(sc,cam);
+  const c=document.getElementById('fcv').getContext('2d');c.clearRect(0,0,FW,FH);
+  c.textAlign='center';c.font='700 24px "Barlow Condensed",sans-serif';
+  F.floats.forEach(f=>{v.set(f.wx,120+(f.h||0),-f.ws).project(cam);const x=(v.x+1)/2*FW,y=(1-v.y)/2*FH;c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,x,y);c.fillStyle=f.col;c.fillText(f.t,x,y)});c.globalAlpha=1;
+  fHudCanvas(c,s0);
+}
+function fHudCanvas(c,s0){
+  c.fillStyle='#14122c';c.fillRect(14,14,300,36);c.fillStyle='#ffc61e';c.font='22px Bungee,Impact,sans-serif';c.textAlign='left';c.fillText(sectionAt(s0+300)[1].slice(0,20),24,40);
+  const prog=Math.min(1,s0/TOTAL);c.fillStyle='rgba(20,18,44,.8)';c.fillRect(14,FH-22,FW-28,10);c.fillStyle='#ffc61e';c.fillRect(14,FH-22,(FW-28)*prog,10);
+}
+function fDraw(){
+  if(t3state==='idle')f3Load();
+  if(t3state==='ready')f3Render();else fDraw2D();
+}
 
 /* ---------- gsm als stuur ---------- */
 let S={conn:null,tilt:0,boost:0,left:0,right:0,timer:0,tiltOk:false,lock:null};
@@ -1525,7 +1680,7 @@ const GAMES=[
  {id:'zatte-tuk-tuk',n:'Zatte Tuk-Tuk',d:'Rij studenten door Gent van de Overpoort tot de Sint-Pietersabdij en trek kanskaarten met drinkopdrachten.',cats:['Drankspel','Bordspel'],pl:'2 tot 6 spelers',art:TUK_ART},
  {id:'paardenrace',n:'Paardenrace',d:'Zet slokken in op je paard en volg de race over de hindernissen tot aan de meet.',cats:['Drankspel','Wedspel'],pl:'2 tot 8 spelers',art:RACE_ART},
  {id:'bussen',n:'Bussen',d:'Raad je tickets, overleef de piramide en hoop dat je de bus naar de Overpoort niet in moet.',cats:['Drankspel','Raadspel'],pl:'2 tot 8 spelers',art:BUS_ART},
- {id:'dronken-fietsen',n:'Dronken fietsen naar Bar des Amis',d:'Scan de QR-code, je gsm wordt je stuur. Fiets van de Overpoort tot de Vlasmarkt zonder te vallen.',cats:['Drankspel','Actiespel'],pl:'1 tot 4 spelers',art:FIETS_ART},
+ {id:'dronken-fietsen',n:'Dronken fietsen naar Bar des Amis',d:'Scan de QR-code, je gsm wordt je stuur. Fiets in 3D van de Overpoort tot de Vlasmarkt zonder te vallen.',cats:['Drankspel','Actiespel'],pl:'1 tot 4 spelers',art:FIETS_ART},
  {n:'Kingsen',d:'Trek een kaart en volg de regel die erbij hoort.',cats:['Drankspel','Kaartspel'],pl:'3 tot 10 spelers',art:'K'},
  {n:'Mexicaantje',d:'Dobbel onder de beker en bluf je door de ronde.',cats:['Drankspel','Dobbelspel'],pl:'3 tot 10 spelers',art:'21'},
  {n:'Ik heb nog nooit',d:'Stellingen voor de tafel. Wie het wel deed, drinkt.',cats:['Drankspel','Praatspel'],pl:'3 of meer spelers',art:'?!'}
