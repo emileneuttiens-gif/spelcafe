@@ -167,6 +167,29 @@ button.tile:hover{border-color:var(--taxi)}
 .tile .play{color:var(--taxi)}
 .tile.soon .art,.tile.soon h2{opacity:.6}
 .empty{color:var(--muted)}
+.busmain{min-width:0;display:grid;gap:14px}
+#busscene{display:block;width:100%;height:auto;border-radius:8px;background:#3a2f7a}
+.busgo{transition:transform .7s ease-in-out}
+.stagehead{font:700 16px/1.1 var(--f-label);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.tkrow{display:flex;flex-wrap:wrap;gap:10px}
+.tk{--t:#6f6c84;width:96px;height:132px;max-width:100%;background:#fff8e6;color:#241a00;border-radius:8px;border-top:16px solid var(--t);display:grid;grid-template-rows:auto 1fr auto;justify-items:center;padding:5px 4px;position:relative}
+.tk::before,.tk::after{content:"";position:absolute;top:52%;width:12px;height:12px;border-radius:50%;background:var(--dusk)}
+.tk::before{left:-6px}.tk::after{right:-6px}
+.tk span{font:600 12px/1 var(--f-label);letter-spacing:.09em;text-transform:uppercase}
+.tk b{font:400 42px/1.1 var(--f-sign);align-self:center;color:var(--t)}
+.tk em{font:700 13px/1 var(--f-label);font-style:normal;letter-spacing:.06em;text-transform:uppercase}
+.tk.c0{--t:#d3202a}.tk.c1{--t:#d96a00}.tk.c2{--t:#1565c0}.tk.c3{--t:#158a52}
+.tk.back{background:var(--dusk-3);color:var(--muted);--t:var(--tuk)}
+.pyr{display:grid;gap:6px;justify-items:center}
+.pyrow{display:flex;gap:6px;align-items:center;position:relative;min-width:0;max-width:100%}
+.pyrow i{position:absolute;left:-22px;font:400 15px/1 var(--f-sign);font-style:normal;color:var(--taxi)}
+.pyr .tk{width:62px;height:84px;border-top-width:9px;padding:3px 2px}
+.pyr .tk b{font-size:24px}.pyr .tk span,.pyr .tk em{font-size:10px}
+.pyr .tk::before,.pyr .tk::after{display:none}
+.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.answers .btn{padding-inline:6px;font-size:16px}
+@media (max-width:440px){.pyr .tk{width:52px;height:72px}.pyr .tk b{font-size:20px}.pyrow i{display:none}}
+@media (prefers-reduced-motion:reduce){.busgo{transition:none}}
 .trackwrap{min-width:0}
 #track{display:block;width:100%;height:auto;border-radius:8px;background:#2f8f52}
 .rh{transition:transform .45s ease-in-out}
@@ -222,6 +245,14 @@ button.tile:hover{border-color:var(--taxi)}
     <div class="side" id="raceside"></div>
   </div>
   <div id="rmodal"></div>
+</div>
+
+<div id="bus" hidden>
+  <div class="app">
+    <div class="busmain"><svg id="busscene" viewBox="0 0 1000 300" role="img" aria-label="Bus op de lijn van Sint-Pieters naar de Overpoort"></svg><div id="busstage"></div></div>
+    <div class="side" id="busside"></div>
+  </div>
+  <div id="bmodal"></div>
 </div>
 
 <div id="game" hidden>
@@ -1041,12 +1072,147 @@ function renderRace(){
 function raceInit(){document.getElementById('track').innerHTML=raceStatic();raceReset()}
 function stopAuto(){if(RP.auto){clearInterval(RP.auto);RP.auto=null}}
 
+/* ---------- bussen ---------- */
+const LINES=[{n:'rood',w:1},{n:'oranje',w:1},{n:'blauw',w:0},{n:'groen',w:0}];
+const STOPSBUS=['Sint-Pieters','Citadelpark','Kouter','Zuid','Vooruit','Overpoort'];
+const newTickets=()=>shuffle([0,1,2,3].flatMap(c=>Array.from({length:13},(_,i)=>({v:i+1,c}))));
+let B={phase:'setup',players:[0,1,2].map(i=>({nm:raceDefaults[i],hand:[],sips:0})),cur:0,deck:[],py:[],pyi:0,shown:null,msg:'',queue:[],pick:null,rider:-1,pos:0,prev:null,fails:0,total:0,done:0,seen:null};
+const tk=t=>`<div class="tk c${t.c}"><span>Lijn</span><b>${t.v}</b><em>${LINES[t.c].n}</em></div>`;
+const tkBack=()=>`<div class="tk back"><span>Ticket</span><b>?</b><em>Bussen</em></div>`;
+function busStatic(){
+  let h=`<defs><linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2f7a"/><stop offset="1" stop-color="#e0704a"/></linearGradient></defs><rect width="1000" height="300" fill="url(#bsky)"/>`;
+  h+=rep(22,i=>{const w=36+(i*7)%34,ht=70+(i*53)%90,x=i*47;return r(x,212-ht,w,ht,i%2?'#2b2a5a':'#352f6b')+rep(3,k=>r(x+8,212-ht+12+k*20,8,10,WIN))});
+  h+=`<rect y="212" width="1000" height="88" fill="#3f3c58"/><rect y="208" width="1000" height="8" fill="#6f6c84"/><path d="M0 262H1000" stroke="#e8e2ff" stroke-width="4" stroke-dasharray="30 22" opacity=".6"/>`;
+  STOPSBUS.forEach((s,i)=>{const x=stopX(i);h+=`${r(x-2,146,4,66,'#d6d2dc')}<circle cx="${x}" cy="140" r="15" fill="#ffc61e"/><text x="${x}" y="147" text-anchor="middle" class="t-sign" font-size="18" fill="#241a00">${i}</text><rect x="${x-74}" y="274" width="148" height="24" rx="4" fill="#141130"/><text x="${x}" y="293" text-anchor="middle" class="t-label" font-size="21" fill="#ffc61e">${s}</text>`});
+  h+=`<g class="busgo" id="busgo"><g transform="translate(0 196)">
+   <rect x="-108" y="-92" width="216" height="92" rx="14" fill="#7a5cf0"/><rect x="-108" y="-30" width="216" height="14" fill="#ffc61e"/>
+   ${rep(4,i=>r(-96+i*42,-80,36,36,'#cfe7ff','rx="4"')+`<circle cx="${-78+i*42}" cy="-52" r="9" fill="#f2d3b3"/><path d="M${-90+i*42} -44a12 10 0 0 1 24 0z" fill="${HORSES[i].c}"/>`)}
+   ${r(72,-80,30,76,'#cfe7ff','rx="4"')}<rect x="-86" y="-104" width="172" height="20" rx="3" fill="#141130"/><text x="0" y="-89" text-anchor="middle" class="t-label" font-size="16" fill="#ffc61e">OVERPOORT</text>
+   ${[-66,62].map(x=>`<circle cx="${x}" cy="4" r="20" fill="#14122c"/><circle cx="${x}" cy="4" r="8" fill="#c9c4d9"/>`).join('')}</g></g>`;
+  return h;
+}
+const stopX=i=>118+i*153;
+function busPos(){
+  const x=B.phase==='bus'||B.phase==='end'?stopX(B.pos):stopX(0)+(stopX(5)-stopX(0))*(B.total?B.done/B.total:0);
+  document.getElementById('busgo').style.transform=`translateX(${x}px)`;
+}
+function busStart(){
+  B.deck=newTickets();B.players.forEach(p=>{p.hand=[];p.sips=0});B.cur=0;B.phase='guess';B.shown=null;B.msg='';B.queue=[];B.pos=0;B.fails=0;B.rider=-1;B.prev=null;
+  B.total=B.players.length*4+15;B.done=0;B.py=[];B.pyi=0;
+  renderBus();
+}
+function questionFor(p){
+  const h=p.hand;
+  if(h.length===0)return{q:'Warme of koude lijn?',help:'Warm is rood of oranje, koud is blauw of groen.',a:[['warm','Warm'],['koud','Koud']]};
+  if(h.length===1)return{q:'Hoger of lager dan lijn '+h[0].v+'?',help:'Gelijk is fout.',a:[['hoger','Hoger'],['lager','Lager']]};
+  if(h.length===2){const[a,b]=[h[0].v,h[1].v].sort((x,y)=>x-y);return{q:'Tussen lijn '+a+' en '+b+', of erbuiten?',help:'Gelijk aan een van beide is fout.',a:[['tussen','Ertussen'],['buiten','Erbuiten']]}}
+  return{q:'Welke lijnkleur?',help:'Eén kans op vier.',a:LINES.map((l,i)=>['c'+i,l.n[0].toUpperCase()+l.n.slice(1)])};
+}
+function correct(p,t,ans){
+  const h=p.hand;
+  if(h.length===0)return(ans==='warm')===!!LINES[t.c].w;
+  if(h.length===1)return ans==='hoger'?t.v>h[0].v:t.v<h[0].v;
+  if(h.length===2){const lo=Math.min(h[0].v,h[1].v),hi=Math.max(h[0].v,h[1].v);if(t.v===lo||t.v===hi)return false;return ans==='tussen'?(t.v>lo&&t.v<hi):(t.v<lo||t.v>hi)}
+  return ans==='c'+t.c;
+}
+function busAnswer(ans){
+  const p=B.players[B.cur],t=B.deck.pop(),n=p.hand.length+1,ok=correct(p,t,ans);
+  if(!ok)p.sips+=n;
+  B.shown=t;B.msg=(ok?'Goed. '+p.nm+' stapt verder.':'Fout. '+p.nm+' drinkt '+n+(n===1?' slok.':' slokken.'));
+  p.hand.push(t);B.done++;B.phase='guessed';renderBus();
+}
+function busNext(){
+  B.shown=null;B.msg='';
+  B.cur=(B.cur+1)%B.players.length;
+  if(B.players.every(p=>p.hand.length>=4)){B.py=B.deck.splice(-15);B.pyi=0;B.phase='pyramid';B.msg='Tik op Draai: heb je dezelfde lijn in de hand, dan leg je af en deel je uit.'}
+  else B.phase='guess';
+  renderBus();
+}
+const pyRow=i=>i<5?1:i<9?2:i<12?3:i<14?4:5;
+function busFlip(){
+  const t=B.py[B.pyi],row=pyRow(B.pyi);B.pyi++;B.done++;B.msg='Lijn '+t.v+' op rij '+row+'.';
+  B.players.forEach((p,i)=>{p.hand.filter(h=>h.v===t.v).forEach(h=>B.queue.push({by:i,n:row,t:h}));p.hand=p.hand.filter(h=>h.v!==t.v)});
+  if(!B.queue.length&&B.pyi>=15)return busToBus();
+  renderBus();
+}
+function busToBus(){
+  const left=B.players.map((p,i)=>({i,n:p.hand.length,s:p.hand.reduce((a,h)=>a+h.v,0)})).sort((a,b)=>b.n-a.n||b.s-a.s);
+  if(!left[0].n){B.phase='end';B.rider=-1;B.msg='Niemand heeft nog tickets. Vandaag rijdt de bus leeg.';return renderBus()}
+  B.rider=left[0].i;B.deck=newTickets();B.prev=B.deck.pop();B.pos=0;B.fails=0;B.phase='bus';
+  B.msg=B.players[B.rider].nm+' heeft de meeste tickets over en moet de bus in, van Sint-Pieters tot de Overpoort.';renderBus();
+}
+function busRide(ans){
+  const p=B.players[B.rider];if(B.deck.length<2)B.deck=newTickets();
+  const t=B.deck.pop(),old=B.prev;B.prev=t;B.shown=t;
+  if(t.v===old.v){B.msg='Gelijk: gratis halte, raad opnieuw.';return renderBus()}
+  if(ans==='hoger'?t.v>old.v:t.v<old.v){
+    B.pos++;B.msg='Goed. De bus rijdt door naar '+STOPSBUS[B.pos]+'.';
+    if(B.pos>=5){B.phase='end';B.msg=p.nm+' is aan de Overpoort. Eindhalte, iedereen eruit.'}
+  }else{
+    p.sips+=1;B.fails++;B.pos=0;
+    if(B.fails>=5){B.phase='end';B.msg='Vijf keer fout. De chauffeur heeft medelijden en zet '+p.nm+' af. Neem een glas water.'}
+    else B.msg='Fout. '+p.nm+' drinkt 1 slok en moet terug naar Sint-Pieters.';
+  }
+  renderBus();
+}
+function renderBus(){
+  busPos();
+  const el=document.getElementById('busside'),st=document.getElementById('busstage'),m=document.getElementById('bmodal');
+  const on=(i,f,ev='click')=>{const e=document.getElementById(i);if(e)e.addEventListener(ev,f)};
+  const score=B.phase==='setup'?'':`<div class="plate"><table class="tbl"><thead><tr><th>Reiziger</th><th>Tickets</th><th>Slokken</th></tr></thead><tbody>${B.players.map((p,i)=>`<tr class="${(B.phase==='guess'||B.phase==='guessed')&&i===B.cur||i===B.rider?'now':''}"><td>${esc(p.nm)}</td><td>${p.hand.length}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table></div>`;
+  const help=`<div class="plate"><details><summary>Spelregels</summary><div class="helptext"><p>Instappen: iedereen raadt vier tickets. Bij een fout drink je evenveel slokken als het nummer van de vraag.</p><p>Piramide: er worden 15 tickets gedraaid. Heb je dezelfde lijn in de hand, dan leg je die af en deel je slokken uit: 1 op de onderste rij, 5 op de top.</p><p>Bus: wie de meeste tickets overhoudt, raadt vijf keer hoger of lager tot de Overpoort. Een fout is 1 slok en terug naar het begin. Na vijf fouten stopt de chauffeur.</p></div></details></div>`;
+  m.innerHTML='';
+  if(B.phase==='setup'){
+    st.innerHTML=`<div class="tkrow">${[{v:7,c:0},{v:12,c:2},{v:3,c:3}].map(tk).join('')}${tkBack()}</div>`;
+    el.innerHTML=`<div class="plate stack"><p class="lead">Stap in bij Sint-Pieters. Wie geen geluk heeft, rijdt de hele lijn.</p>
+     <div class="field"><label for="bcount">Reizigers</label><select id="bcount">${[2,3,4,5,6,7,8].map(n=>`<option ${n===B.players.length?'selected':''}>${n}</option>`).join('')}</select></div>
+     <div class="names">${B.players.map((p,i)=>`<div class="field"><label for="bn${i}">Reiziger ${i+1}</label><input id="bn${i}" maxlength="14" value="${esc(p.nm)}"></div>`).join('')}</div>
+     <button class="btn" id="bstart">Instappen</button><p class="small">Voor 18+. Water of frisdrank telt net zo goed. Sla gerust een slok over.</p></div>${help}`;
+    on('bcount',e=>{const n=+e.target.value;B.players=Array.from({length:n},(_,i)=>B.players[i]||{nm:raceDefaults[i],hand:[],sips:0});renderBus()},'change');
+    B.players.forEach((p,i)=>on('bn'+i,e=>{p.nm=e.target.value.trim()||('Reiziger '+(i+1))},'input'));
+    on('bstart',busStart);return;
+  }
+  if(B.phase==='guess'||B.phase==='guessed'){
+    const p=B.players[B.cur];
+    st.innerHTML=`<h2 class="stagehead">Tickets van ${esc(p.nm)}</h2><div class="tkrow">${p.hand.map(tk).join('')}${B.phase==='guess'?tkBack():''}</div>`;
+    if(B.phase==='guess'){const q=questionFor(p);
+      el.innerHTML=`<div class="plate"><div class="turn"><p class="lead">${esc(p.nm)}</p></div><p class="callout" style="min-height:0">${esc(q.q)}</p><p class="hint" style="min-height:0">${q.help}</p><div class="answers">${q.a.map(([k,l])=>`<button class="btn" data-a="${k}">${l}</button>`).join('')}</div></div>${score}${help}`;
+      el.querySelectorAll('[data-a]').forEach(b=>b.addEventListener('click',()=>busAnswer(b.dataset.a)));
+    }else{
+      el.innerHTML=`<div class="plate"><div class="turn"><p class="lead">${esc(p.nm)}</p></div><p class="callout">${esc(B.msg)}</p><button class="btn" id="bnext">Volgende</button></div>${score}${help}`;on('bnext',busNext);
+    }
+    return;
+  }
+  if(B.phase==='pyramid'){
+    const rows=[[14,15],[12,14],[9,12],[5,9],[0,5]];
+    st.innerHTML=`<div class="pyr">${rows.map(([a,b],ri)=>`<div class="pyrow"><i>${5-ri}</i>${B.py.slice(a,b).map((t,k)=>a+k<B.pyi?tk(t):tkBack()).join('')}</div>`).join('')}</div>`;
+    if(B.queue.length){
+      const q=B.queue[0],p=B.players[q.by];
+      m.innerHTML=`<div class="overlay" role="dialog" aria-modal="true" aria-label="Uitdelen"><div class="card k-info"><header><span>Piramide</span><span>${esc(p.nm)}</span></header><div class="body"><h3>${esc(p.nm)} legt lijn ${q.t.v} af</h3><p>Deel ${q.n} ${q.n===1?'slok':'slokken'} uit. Tik per slok op wie drinkt.</p><div class="picks">${B.players.map((x,i)=>`<button data-g="${i}">${esc(x.nm)}<em>${q.got&&q.got[i]?'+'+q.got[i]:'&nbsp;'}</em></button>`).join('')}</div></div></div></div>`;
+      m.querySelectorAll('[data-g]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.g;B.players[i].sips++;q.got=q.got||{};q.got[i]=(q.got[i]||0)+1;q.n--;if(q.n<=0){B.queue.shift();if(!B.queue.length&&B.pyi>=15)return busToBus()}renderBus()}));
+    }
+    el.innerHTML=`<div class="plate"><p class="callout">${esc(B.msg)}</p><button class="btn" id="bflip">Draai ticket ${B.pyi+1} van 15</button></div>${score}${help}`;on('bflip',busFlip);return;
+  }
+  if(B.phase==='bus'){
+    const p=B.players[B.rider];
+    st.innerHTML=`<h2 class="stagehead">${esc(p.nm)} zit op de bus, halte ${B.pos} van 5</h2><div class="tkrow">${tk(B.prev)}${tkBack()}</div>`;
+    el.innerHTML=`<div class="plate"><p class="callout">${esc(B.msg)}</p><p class="hint" style="min-height:0">Is het volgende ticket hoger of lager dan lijn ${B.prev.v}? Fouten: ${B.fails} van 5.</p><div class="answers"><button class="btn" id="bhi">Hoger</button><button class="btn" id="blo">Lager</button></div></div>${score}${help}`;
+    on('bhi',()=>busRide('hoger'));on('blo',()=>busRide('lager'));return;
+  }
+  st.innerHTML=`<h2 class="stagehead">Eindhalte</h2><div class="tkrow">${B.prev?tk(B.prev):''}</div>`;
+  el.innerHTML=`<div class="plate"><p class="callout">${esc(B.msg)}</p><div class="answers"><button class="btn" id="bagain">Nog een rit</button></div></div>${score}${help}`;
+  on('bagain',()=>{B.phase='setup';B.players.forEach(p=>{p.hand=[]});B.pos=0;B.total=0;renderBus()});
+}
+function busInit(){document.getElementById('busscene').innerHTML=busStatic()}
+
 /* ---------- keuzemenu ---------- */
 const TUK_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#2b4f45"/><rect y="62" width="320" height="56" fill="#3a3850"/><rect x="132" width="56" height="180" fill="#3a3850"/><path d="M0 90h320M160 0v180" stroke="#e8e2ff" stroke-width="3" stroke-dasharray="18 14" opacity=".55"/><rect x="70" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="73" y="75" width="60" height="30" rx="12" fill="#ffc61e"/><rect x="88" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><rect x="186" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="189" y="75" width="60" height="30" rx="12" fill="#7a5cf0"/><rect x="204" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><use href="#s-S" x="28" y="10" width="46" height="46"/><use href="#s-4" x="246" y="124" width="46" height="46"/><rect x="214" y="12" width="44" height="44" rx="8" fill="#ff8a1f"/><text x="236" y="50" text-anchor="middle" class="t-sign" font-size="36" fill="#2b1400">?</text></svg>`;
 const RACE_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#36a05e"/><rect width="320" height="52" fill="#2b2a5a"/><rect y="46" width="320" height="10" fill="#f7f3ff"/><rect x="214" y="58" width="14" height="122" rx="6" fill="#1f6b3c"/><g transform="translate(92 158) scale(.8)">${horseArt(0)}</g><g transform="translate(186 110) scale(.62)">${horseArt(2)}</g><g transform="translate(260 164) scale(.72)">${horseArt(3)}</g></svg>`;
+const BUS_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#352f6b"/><rect y="130" width="320" height="50" fill="#3f3c58"/><g transform="translate(160 136)"><rect x="-108" y="-92" width="216" height="92" rx="14" fill="#7a5cf0"/><rect x="-108" y="-30" width="216" height="14" fill="#ffc61e"/>${[0,1,2,3].map(i=>`<rect x="${-96+i*42}" y="-80" width="36" height="36" rx="4" fill="#cfe7ff"/>`).join('')}<rect x="72" y="-80" width="30" height="76" rx="4" fill="#cfe7ff"/>${[-66,62].map(x=>`<circle cx="${x}" cy="4" r="20" fill="#14122c"/><circle cx="${x}" cy="4" r="8" fill="#c9c4d9"/>`).join('')}</g></svg>`;
 const GAMES=[
  {id:'zatte-tuk-tuk',n:'Zatte Tuk-Tuk',d:'Rij studenten door Gent van de Overpoort tot de Sint-Pietersabdij en trek kanskaarten met drinkopdrachten.',cats:['Drankspel','Bordspel'],pl:'2 tot 6 spelers',art:TUK_ART},
  {id:'paardenrace',n:'Paardenrace',d:'Zet slokken in op je paard en volg de race over de hindernissen tot aan de meet.',cats:['Drankspel','Wedspel'],pl:'2 tot 8 spelers',art:RACE_ART},
+ {id:'bussen',n:'Bussen',d:'Raad je tickets, overleef de piramide en hoop dat je de bus naar de Overpoort niet in moet.',cats:['Drankspel','Raadspel'],pl:'2 tot 8 spelers',art:BUS_ART},
  {n:'Kingsen',d:'Trek een kaart en volg de regel die erbij hoort.',cats:['Drankspel','Kaartspel'],pl:'3 tot 10 spelers',art:'K'},
  {n:'Mexicaantje',d:'Dobbel onder de beker en bluf je door de ronde.',cats:['Drankspel','Dobbelspel'],pl:'3 tot 10 spelers',art:'21'},
  {n:'Ik heb nog nooit',d:'Stellingen voor de tafel. Wie het wel deed, drinkt.',cats:['Drankspel','Praatspel'],pl:'3 of meer spelers',art:'?!'}
@@ -1063,16 +1229,18 @@ function renderMenu(){
   document.getElementById('empty').hidden=list.length>0;
 }
 function route(){
-  const inGame=location.hash==='#zatte-tuk-tuk', inRace=location.hash==='#paardenrace';
-  document.getElementById('menu').hidden=inGame||inRace;
+  const inGame=location.hash==='#zatte-tuk-tuk', inRace=location.hash==='#paardenrace', inBus=location.hash==='#bussen', any=inGame||inRace||inBus;
+  document.getElementById('menu').hidden=any;
+  document.getElementById('bus').hidden=!inBus;
   document.getElementById('game').hidden=!inGame;
   document.getElementById('race').hidden=!inRace;
-  document.getElementById('back').hidden=!(inGame||inRace);
-  document.getElementById('tag').hidden=inGame||inRace;
-  document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':'Spel<span>café</span>';
+  document.getElementById('back').hidden=!any;
+  document.getElementById('tag').hidden=any;
+  document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':inBus?'Bus<span>sen</span>':'Spel<span>café</span>';
   stopAuto();
   if(inGame){render();if(zoom==='near')focusOn(G?G.P[G.cur].pos:nid.ku,true)}
   else if(inRace)renderRace();
+  else if(inBus)renderBus();
   else renderMenu();
 }
 function go(h){location.hash=h;route()}
@@ -1086,7 +1254,7 @@ addEventListener('hashchange',route);
 /* ---------- opstart ---------- */
 function start(data){
   if(data&&data.G)G=data.G;
-  raceInit();
+  raceInit();busInit();
   route();drive();
   if(window.claude&&claude.use)claude.use('room').then(r=>{if(r){roomCap=r;if(!G)render()}}).catch(()=>{});
 }
