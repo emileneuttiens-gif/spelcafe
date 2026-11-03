@@ -11,6 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Bungee&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
 /* Layout: een stad bij schemering. Links het bord, rechts het dashboard van de tuk-tuk. */
 :root{
@@ -167,6 +169,30 @@ button.tile:hover{border-color:var(--taxi)}
 .tile .play{color:var(--taxi)}
 .tile.soon .art,.tile.soon h2{opacity:.6}
 .empty{color:var(--muted)}
+.fmain{min-width:0}
+#fcv{display:block;width:100%;height:auto;border-radius:8px;background:#2b2a5a}
+.qr{background:#fff;border-radius:8px;padding:8px;width:min(100%,220px);margin-inline:auto}
+.qr svg{display:block;width:100%;height:auto}
+.url{overflow-wrap:anywhere;text-align:center}
+.linkbtn{display:block;text-align:center;border-radius:8px;padding:12px;background:var(--taxi);color:var(--taxi-ink);font-weight:700;text-decoration:none}
+.zat{display:block;height:6px;width:100%;min-width:70px;background:var(--dusk);border-radius:3px;overflow:hidden;margin-top:3px}
+.zat i{display:block;height:100%;background:linear-gradient(90deg,#8ed13f,#ffc61e,#e0303a)}
+#stuur{position:fixed;inset:0;z-index:40;background:var(--dusk);overflow:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.st{display:grid;gap:12px;padding:32px 20px;max-width:420px;margin-inline:auto}
+.st input{width:100%;background:var(--dusk-2);border:1px solid var(--line);border-radius:6px;padding:12px;font-size:18px;user-select:text;-webkit-user-select:text}
+.st label{font:600 14px/1 var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.stlogo{font:400 30px/1.05 var(--f-sign);color:var(--taxi)}
+.stline{font-size:18px}
+.stplay{height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:max(14px,env(safe-area-inset-top,0px)) 14px max(14px,env(safe-area-inset-bottom,0px))}
+.stname{font:400 20px/1.1 var(--f-sign);color:var(--me)}
+.stmsg{min-height:64px;display:grid;align-content:center;gap:2px;text-align:center;border-radius:8px;background:var(--dusk-2);padding:8px}
+.stmsg b{font-size:18px}.stmsg span{font-size:15px;color:var(--muted)}
+.stmsg.bad{background:var(--stop)}.stmsg.bad span{color:#fff;font-weight:700;font-size:20px}
+#stwheel{width:100%;height:100%;min-height:0}
+.stbtns{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+.stbtns button{border:0;border-radius:10px;height:96px;background:var(--dusk-3);color:var(--ink);font:700 19px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;touch-action:none}
+#stb{background:var(--taxi);color:var(--taxi-ink)}
+.stbtns .on{outline:4px solid var(--ink)}
 .busmain{min-width:0;display:grid;gap:14px}
 #busscene{display:block;width:100%;height:auto;border-radius:8px;background:#3a2f7a}
 .busgo{transition:transform .7s ease-in-out}
@@ -255,6 +281,14 @@ button.tile:hover{border-color:var(--taxi)}
   <div id="bmodal"></div>
 </div>
 
+<div id="fiets" hidden>
+  <div class="app">
+    <div class="fmain"><canvas id="fcv" width="960" height="540" aria-label="Fietsrit van de Overpoort naar Bar des Amis"></canvas></div>
+    <div class="side" id="fside"></div>
+  </div>
+</div>
+<div id="stuur" hidden></div>
+
 <div id="game" hidden>
   <div class="app">
     <div class="boardbox"><button class="zoom" id="zoom">Hele kaart</button><div class="boardwrap" id="wrap"><svg id="board" class="near" viewBox="-420 -420 2140 2140" role="img" aria-label="Spelkaart van Gent met straten, verkeerslichten en bekende plekken"></svg></div></div>
@@ -295,7 +329,7 @@ const near=(x,y,used)=>ROADS.filter(i=>ADJ[i].length===2&&!STOPS.includes(i)&&!u
 const taken=[];
 const claim=(x,y)=>{const n=near(x,y,taken);taken.push(n);return n};
 const LANDMARKS=[['Gravensteen',560,180],['Graslei',440,390],['Belfort',650,440],['Sint-Baafs',850,490],['Vrijdagmarkt',900,230],['Kouter',560,610],['Krook',800,560],['Vooruit',860,740],
- ['Boekentoren',600,780],['Overpoort',500,1000],['Sint-Pietersabdij',1000,800],['Citadelpark',330,800],['Sint-Pietersstation',230,1090],['Campus Sterre',760,1160],['Rabot',-60,120],['Dok Noord',1150,-260],['Portus Ganda',1620,480],['Zuidpark',1300,970],['Stadion KAA Gent',1320,1370],['Flanders Expo',420,1650],['UZ Gent',-10,1370],['Blaarmeersen',-190,760],['Bijloke',40,690]].map(([n,x,y])=>({n,c:claim(x,y)}));
+ ['Boekentoren',600,780],['Overpoort',500,1000],['Sint-Pietersabdij',1000,800],['Citadelpark',330,800],['Sint-Pietersstation',230,1090],['Campus Sterre',760,1160],['Rabot',-60,120],['Dok Noord',1150,-260],['Portus Ganda',1620,480],['Zuidpark',1300,970],['Stadion KAA Gent',1320,1370],['Flanders Expo',420,1650],['UZ Gent',-10,1370],['Blaarmeersen',-190,760],['Bijloke',40,690],['Bar des Amis',1160,420]].map(([n,x,y])=>({n,c:claim(x,y)}));
 const GARAGE=[claim(1100,240),claim(170,500),claim(1500,1300),claim(-340,1000)], FUEL=[claim(700,890),claim(590,160),claim(700,1400),claim(-330,250)];
 const KANS=[[250,300],[1110,450],[120,560],[1185,1000],[710,1040],[700,720],[300,640],[1130,770],[420,1040],[300,-320],[1500,-120],[1640,700],[1100,1520],[150,1640],[-330,1280],[-200,-20],[830,-120]].map(([x,y])=>claim(x,y));
 const JUNCTIONS=ROADS.filter(i=>ADJ[i].length>=3&&!LIGHTS.includes(i)&&!STOPS.includes(i));
@@ -623,8 +657,8 @@ function rollClick(){
   rolling=1;render();
   setTimeout(()=>{rolling=0;act(doRoll)},ROLLTIME);
 }
-function save(){try{localStorage.setItem('zatte-tuktuk-gent2',JSON.stringify(G))}catch(e){}}
-function load(){try{const s=localStorage.getItem('zatte-tuktuk-gent2');return s?JSON.parse(s):null}catch(e){return null}}
+function save(){try{localStorage.setItem('zatte-tuktuk-gent3',JSON.stringify(G))}catch(e){}}
+function load(){try{const s=localStorage.getItem('zatte-tuktuk-gent3');return s?JSON.parse(s):null}catch(e){return null}}
 
 /* ---------- online tafel ---------- */
 function wire(){return JSON.stringify({...G,log:[]})}
@@ -733,6 +767,7 @@ const DRAW={
   ${rep(3,i=>`<path d="M${-120+i*90} -2l16 -22 16 22z" fill="${['#e0303a','#18b7a6','#ffc61e'][i]}"/>`)}`,
  bijloke:()=>`${r(-124,-70,248,70,BRK)}<path d="M-124 -70 L-96 -124 H96 L124 -70Z" fill="${SL}"/>${rep(6,i=>arch(-108+i*38,-12,20,44))}
   ${rep(2,i=>{const x=-136+i*232;return r(x,-104,40,104,BRK2)+rep(4,k=>r(x+k*4,-112-k*9,40-k*8,10,BRK2))+arch(x+13,-50,14,34)}).replace(/undefined/g,'')}`,
+ bda:()=>`${r(-100,-92,200,92,'#5a2f3e')}${r(-104,-98,208,8,'#3d1f2c')}${rep(5,i=>r(-88+i*36,-86,22,24,WIN))}${r(-74,-56,148,20,DK)}<text x="0" y="-41" text-anchor="middle" class="t-sign" font-size="12.5" fill="#ff4f8b">BAR DES AMIS</text>${r(-88,-30,56,30,WIN)}${r(32,-30,56,30,WIN)}${r(-16,-32,32,32,DK)}`,
  sterre:()=>`${r(-120,-92,92,92,'#cfcbd8')}${rep(5,i=>rep(5,k=>r(-114+k*17,-86+i*17,11,11,(i+k)%3?WIN:'#6f6c84')))}
   ${r(-16,-58,128,58,'#b9b4c4')}${rep(3,i=>rep(6,k=>r(-10+k*20,-52+i*17,14,11,WIN)))}
   <path d="M28 -58c0-40 62-40 62 0z" fill="#6f8ca8"/><path d="M59 -90l30 -22" stroke="${DK}" stroke-width="4"/>`
@@ -742,7 +777,7 @@ const SCENE=[['gravensteen',420,214,1,'Gravensteen'],['graslei',372,432,.78,'Gra
  ['kouter',593,590,.72,'Kouter'],['krook',770,690,.72,'Krook'],['vooruit',905,845,.62,'Vooruit'],['boekentoren',560,912,.6,'Boekentoren'],['overpoort',490,1135,1.05,'Overpoort',44],
  ['abdij',1030,985,.85,'Sint-Pietersabdij',-8],['citadel',240,940,.95,'Citadelpark'],['station',255,1275,.8,'Sint-Pietersstation'],['sterre',900,1265,.82,'Campus Sterre'],
  ['rabot',60,150,.9,'Rabot'],['dok',1120,-40,1.1,'Dok Noord'],['portus',1420,510,1.1,'Portus Ganda'],['zuidpark',1380,830,1.05,'Zuidpark'],['stadion',1180,1400,1.2,'Stadion KAA Gent'],
- ['expo',460,1510,1.2,'Flanders Expo'],['uz',-140,1340,.85,'UZ Gent'],['blaarmeersen',-110,1040,1.2,'Blaarmeersen'],['bijloke',-150,640,.95,'Bijloke']];
+ ['expo',460,1510,1.2,'Flanders Expo'],['uz',-140,1340,.85,'UZ Gent'],['blaarmeersen',-110,1040,1.2,'Blaarmeersen'],['bijloke',-150,640,.95,'Bijloke'],['bda',1130,352,.72,'Bar des Amis']];
 function staticBoard(){
   const road=STREETS.map(([a,b,cx,cy])=>`M${J[a][0]} ${J[a][1]}Q${cx} ${cy} ${J[b][0]} ${J[b][1]}`).join('');
   let h=`<defs>${signSym()}</defs><rect x="${VX}" y="${VY}" width="${VS}" height="${VS}" fill="#2b4a48"/>`;
@@ -932,7 +967,7 @@ function render(){
    `<div class="plate">${legend()}<button class="btn alt" id="quit" style="margin-top:8px">Rit stoppen</button></div>`;
   const on=(i,f,ev='click')=>{const e=document.getElementById(i);if(e)e.addEventListener(ev,f)};
   on('draw',()=>act(draw));on('roll',rollClick);on('skipremove',()=>act(()=>{G.phase='roll'}));
-  on('again',()=>{G=null;try{localStorage.removeItem('zatte-tuktuk-gent2')}catch(e){}render()});
+  on('again',()=>{G=null;try{localStorage.removeItem('zatte-tuktuk-gent3')}catch(e){}render()});
   on('quit',()=>{clearTimeout(autoTimer);if(room){room.leave().catch(()=>{});room=null}G=null;mySeat=-1;render()});
   on('seat',e=>{mySeat=+e.target.value;render()},'change');
   if(focusId){const f=document.getElementById(focusId);if(f)f.focus()}
@@ -1205,14 +1240,292 @@ function renderBus(){
 }
 function busInit(){document.getElementById('busscene').innerHTML=busStatic()}
 
+/* ---------- dronken fietsen naar bar des amis ---------- */
+const SITE='https://emileneuttiens-gif.github.io/spelcafe/';
+const FCOL=['#ffc61e','#29c7d8','#ff6b4a','#8ed13f'];
+const FW=960,FH=540,ROADW=440,TOTAL=21000,RIDE=250;
+const SECTIONS=[[0,'Overpoort','#4a4470'],[3500,'Sint-Pietersnieuwstraat','#5a4b6e'],[7000,'Vooruit','#8c3f3a'],[10000,'Kouter','#3f6d59'],[13000,'Sint-Baafs','#6f6c84'],[16000,'Vrijdagmarkt','#7d5a3a'],[19000,'Vlasmarkt','#7a3f5e']];
+const OBJ={paal:{r:15,n:'paaltje'},put:{r:24,n:'put'},fiets:{r:24,n:'geparkeerde fiets'},duif:{r:15,n:'duiven'},tram:{r:30,n:'tramspoor'},agent:{r:22,n:'politie'},mens:{r:18,n:'voetganger'}};
+let F={phase:'lobby',players:[],code:'',peer:null,status:'',items:[],cam:0,t:0,raf:0,last:0,floats:[],keys:{},shake:0,net:false};
+const roadX=s=>FW/2+Math.sin(s/1500)*105+Math.sin(s/620)*45;
+const sectionAt=s=>{let c=SECTIONS[0];for(const x of SECTIONS)if(s>=x[0])c=x;return c};
+function fAdd(key,nm,conn){
+  if(F.players.length>=4)return null;
+  const i=F.players.length,p={key,nm,conn,c:FCOL[i],in:0,boost:0,x:0,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,phi:i*1.7};
+  F.players.push(p);return p;
+}
+const fSend=(p,m)=>{try{if(p.conn&&p.conn.open)p.conn.send(m)}catch(e){}};
+function fLobby(){
+  F.phase='lobby';cancelAnimationFrame(F.raf);
+  if(!F.code)F.code=Math.random().toString(36).replace(/[^a-z]/g,'').slice(0,4).padEnd(4,'x');
+  fNet();fPanel();fDraw();
+}
+function fNet(){
+  if(F.net)return;F.net=true;
+  const ok=/github\.io$/.test(location.hostname)||window.__fietsTest;
+  if(!ok||!window.Peer){F.status='Dit scherm kan geen gsm koppelen. Open de GitHub-link van Spelcafé, of speel met de toetsen.';F.offline=true;return}
+  F.status='Tafel wordt klaargezet.';
+  const peer=new Peer('spelcafe-fiets-'+F.code);F.peer=peer;
+  peer.on('open',()=>{F.status='Scan de code met je gsm.';fPanel()});
+  peer.on('error',e=>{F.status='De verbinding lukte niet ('+(e.type||'fout')+'). Herlaad de pagina of speel met de toetsen.';fPanel()});
+  peer.on('connection',conn=>{
+    conn.on('data',m=>fMsg(conn,m));
+    conn.on('close',()=>{const p=F.players.find(x=>x.conn===conn);if(p){p.gone=true;p.in=0;p.boost=0;if(F.phase==='lobby')F.players=F.players.filter(x=>x!==p);fPanel()}});
+  });
+}
+function fMsg(conn,m){
+  if(!m||typeof m!=='object')return;
+  if(typeof m.j==='string'){
+    let p=F.players.find(x=>x.conn===conn);
+    const name=m.j.trim().slice(0,12)||'Fietser';
+    if(!p){if(F.phase!=='lobby'){conn.send({full:'De rit is al bezig. Wacht op de volgende.'});return}
+      p=fAdd(conn.peer,name,conn);if(!p){conn.send({full:'De fietsenstalling is vol: maximum 4 fietsers.'});return}}
+    conn.send({ok:1,c:p.c,n:p.nm});fPanel();return;
+  }
+  const p=F.players.find(x=>x.conn===conn);
+  if(p&&Array.isArray(m.s)){p.in=Math.max(-1,Math.min(1,+m.s[0]||0));p.boost=m.s[1]?1:0}
+}
+function fItems(){
+  const a=[];let s=700;
+  const types=['paal','put','fiets','duif','tram','mens'];
+  while(s<TOTAL-900){
+    const hard=s/TOTAL,o=(Math.random()*2-1)*.85,kind=Math.random();
+    if(kind<.34)a.push({k:'pint',s,o});
+    else if(kind<.42)a.push({k:'water',s,o});
+    else if(kind<.48&&s>4000)a.push({k:'agent',s,o});
+    else{a.push({k:types[Math.floor(Math.random()*types.length)],s,o,v:Math.random()<.5?1:-1});
+      if(Math.random()<hard*.7)a.push({k:'paal',s:s+10,o:-o*.8});}
+    s+=230-hard*90+Math.random()*90;
+  }
+  return a;
+}
+function fStart(){
+  if(!F.players.length)fAdd('key1','Pijltjes',null);
+  F.items=fItems();F.cam=0;F.t=0;F.floats=[];F.phase='play';
+  const n=F.players.length;
+  F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*80,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false});fSend(p,{go:1})});
+  F.last=performance.now();fPanel();F.raf=requestAnimationFrame(fLoop);
+}
+function fFloat(p,t,col){F.floats.push({x:roadX(F.cam+FH-p.py)+p.x,y:p.py-40,t,col,a:1.4})}
+function fFall(p,why,n=1){
+  if(p.safe>0)return;
+  p.stun=1.3;p.safe=2.6;p.falls++;p.sips+=n;p.vx=0;p.py=Math.min(505,p.py+45);
+  fFloat(p,p.nm+': '+why+'. '+n+(n===1?' slok':' slokken'),'#ff6b6b');
+  F.shake=.4;fSend(p,{fall:why,n});
+}
+function fStep(dt){
+  F.t+=dt;F.cam+=RIDE*dt;F.shake=Math.max(0,F.shake-dt);
+  for(const it of F.items)if(it.k==='mens'||it.k==='duif'){const near=it.s-F.cam;if(near>-100&&near<760&&!it.hit){it.o+=(it.v||1)*dt*(it.k==='mens'?.45:.2);if(Math.abs(it.o)>.92)it.v=-(it.v||1)}}
+  F.players.forEach(p=>{
+    const s=F.cam+FH-p.py,cx=roadX(s),cobble=/Vrijdagmarkt|Vlasmarkt/.test(sectionAt(s)[1]);
+    p.safe=Math.max(0,p.safe-dt);
+    if(p.stun>0){p.stun-=dt;p.x+=(0-p.x)*dt*1.2;return}
+    let inp=p.in;
+    if(p.key==='key1')inp=(F.keys.ArrowRight?1:0)-(F.keys.ArrowLeft?1:0);
+    if(p.key==='key2')inp=(F.keys.KeyD?1:0)-(F.keys.KeyA?1:0);
+    const boost=p.key==='key1'?F.keys.ArrowUp:p.key==='key2'?F.keys.KeyW:p.boost;
+    const k=11-8*p.zat, sway=Math.sin(F.t*(1.8+p.zat)+p.phi)*p.zat*(150)+(cobble?Math.sin(F.t*17+p.phi)*38:0);
+    p.vx+=((inp*440+sway)-p.vx)*Math.min(1,dt*k);
+    p.x+=p.vx*dt;
+    const drop=roadX(s+RIDE*dt)-cx;p.x-=drop*.9;
+    p.py+=boost?-70*dt:14*dt;p.py=Math.max(300,Math.min(505,p.py));
+    p.zat=Math.max(0,p.zat-.012*dt);
+    if(Math.abs(p.x)>ROADW/2-14){p.x=Math.sign(p.x)*(ROADW/2-40);fFall(p,'van de stoep gereden')}
+    for(const it of F.items){
+      if(it.hit||Math.abs(it.s-s)>34)continue;
+      const dx=Math.abs(it.o*(ROADW/2-40)-p.x);
+      if(it.k==='pint'&&dx<34){it.hit=1;p.pints++;p.zat=Math.min(1,p.zat+.11);fFloat(p,'+1 pintje','#ffc61e');fSend(p,{z:p.zat})}
+      else if(it.k==='water'&&dx<34){it.hit=1;p.zat=Math.max(0,p.zat-.3);fFloat(p,'Water, helderder','#7fd4ff');fSend(p,{z:p.zat})}
+      else if(it.k==='agent'&&dx<38){if(p.safe>0)continue;if(p.zat>.45){it.hit=1;p.fine++;fFall(p,'politiecontrole',2)}else{it.hit=1;fFloat(p,'Agent knikt: mag door','#8ed13f')}}
+      else if(OBJ[it.k]&&dx<OBJ[it.k].r+14){it.hit=1;fFall(p,OBJ[it.k].n)}
+    }
+  });
+  F.floats.forEach(f=>{f.a-=dt;f.y-=26*dt});F.floats=F.floats.filter(f=>f.a>0);
+  if(F.cam+FH-430>=TOTAL)fEnd();
+}
+function fScore(p){return p.pints*10-p.falls*15+Math.round((505-p.py)/4)}
+function fRank(){return F.players.slice().sort((a,b)=>fScore(b)-fScore(a))}
+function fEnd(){
+  F.phase='end';cancelAnimationFrame(F.raf);
+  const r=fRank();
+  if(r.length>1)r[r.length-1].sips+=2;
+  r.forEach((p,i)=>fSend(p,{end:i+1,score:fScore(p),sips:p.sips}));
+  fPanel();fDraw();
+}
+function fLoop(now){
+  if(F.phase!=='play')return;
+  const dt=Math.min(.05,(now-F.last)/1000);F.last=now;
+  fStep(dt);fDraw();
+  F.hud=(F.hud||0)+dt;if(F.hud>.3){F.hud=0;fHud()}
+  if(F.phase==='play')F.raf=requestAnimationFrame(fLoop);
+}
+function fHouse(c,x,y,w,h,col,seed,side){
+  c.fillStyle=col;c.fillRect(x,y,w,h);c.fillStyle='rgba(0,0,0,.2)';c.fillRect(side<0?x+w-10:x,y,10,h);
+  for(let i=0;i<3;i++)for(let k=0;k<2;k++){c.fillStyle=(seed+i*3+k)%3?'#ffd97a':'rgba(255,255,255,.15)';c.fillRect(x+16+k*(w-52),y+12+i*(h-30)/3,18,12)}
+}
+function fObj(c,k,x,y,t){
+  if(k==='pint'){c.fillStyle='#e8a800';c.fillRect(x-11,y-14,22,28);c.fillStyle='#fff8e6';c.beginPath();c.arc(x,y-14,13,Math.PI,0);c.fill();c.strokeStyle='#fff';c.lineWidth=3;c.strokeRect(x+11,y-7,7,13)}
+  else if(k==='water'){c.fillStyle='#7fd4ff';c.fillRect(x-9,y-12,18,28);c.fillStyle='#fff';c.fillRect(x-5,y-22,10,10)}
+  else if(k==='paal'){c.fillStyle='#14122c';c.beginPath();c.arc(x,y,13,0,7);c.fill();c.fillStyle='#d3202a';c.beginPath();c.arc(x,y,9,0,7);c.fill();c.fillStyle='#fff';c.fillRect(x-9,y-2,18,4)}
+  else if(k==='put'){c.fillStyle='#14122c';c.beginPath();c.ellipse(x,y,28,17,0,0,7);c.fill();c.strokeStyle='#6f6c84';c.lineWidth=4;c.stroke()}
+  else if(k==='fiets'){c.strokeStyle='#c9c4d9';c.lineWidth=5;c.beginPath();c.moveTo(x-30,y+8);c.lineTo(x+30,y-8);c.stroke();c.fillStyle='#14122c';c.beginPath();c.arc(x-30,y+8,8,0,7);c.arc(x+30,y-8,8,0,7);c.fill()}
+  else if(k==='duif'){[[-14,0],[12,-9],[6,11]].forEach(([a,b])=>{c.fillStyle='#b9b4c4';c.beginPath();c.ellipse(x+a,y+b,10,6,0,0,7);c.fill();c.fillStyle='#6f6c84';c.beginPath();c.arc(x+a+8,y+b-2,3.5,0,7);c.fill()})}
+  else if(k==='tram'){c.strokeStyle='#c9c4d9';c.lineWidth=5;c.beginPath();c.moveTo(x-46,y+24);c.lineTo(x+46,y-24);c.moveTo(x-30,y+36);c.lineTo(x+62,y-12);c.stroke()}
+  else if(k==='agent'){c.fillStyle='#16245c';c.beginPath();c.arc(x,y,17,0,7);c.fill();c.fillStyle='#ffef3a';c.fillRect(x-18,y-5,36,10);c.fillStyle='#f2d3b3';c.beginPath();c.arc(x,y,7,0,7);c.fill();c.fillStyle='#16245c';c.fillRect(x-9,y-11,18,6)}
+  else if(k==='mens'){c.fillStyle='#ff4f8b';c.beginPath();c.ellipse(x,y,17,10,0,0,7);c.fill();c.fillStyle='#f2d3b3';c.beginPath();c.arc(x,y,8,0,7);c.fill()}
+}
+function fRider(c,p,x,y){
+  c.save();c.translate(x,y);
+  if(p.stun>0){c.rotate(1.3)}else c.rotate(p.vx/2200);
+  if(p.safe>0&&Math.floor(F.t*10)%2&&p.stun<=0)c.globalAlpha=.5;
+  c.strokeStyle='#14122c';c.lineWidth=7;c.beginPath();c.moveTo(0,-30);c.lineTo(0,30);c.stroke();
+  c.lineWidth=4;c.strokeStyle='#e8e2ff';c.beginPath();c.moveTo(-15,-20);c.lineTo(15,-20);c.stroke();
+  c.fillStyle=p.c;c.beginPath();c.ellipse(0,2,17,12,0,0,7);c.fill();
+  c.fillStyle='#f2d3b3';c.beginPath();c.arc(0,-3,8,0,7);c.fill();
+  c.restore();
+  c.font='700 15px "Barlow Condensed",sans-serif';c.textAlign='center';c.fillStyle='#fff';c.fillText(p.nm,x,y+50);
+  if(p.stun>0){c.fillStyle='#ffc61e';for(let i=0;i<3;i++){const a=F.t*6+i*2;c.beginPath();c.arc(x+Math.cos(a)*26,y-26+Math.sin(a)*8,4,0,7);c.fill()}}
+}
+function fBar(c,y){
+  const cx=FW/2,w=620;
+  c.fillStyle='#5a2f3e';c.fillRect(cx-w/2,y-210,w,210);
+  c.fillStyle='#3d1f2c';c.fillRect(cx-w/2,y-222,w,14);
+  for(let i=0;i<6;i++){c.fillStyle='#ffd97a';c.fillRect(cx-w/2+36+i*96,y-190,52,50)}
+  c.fillStyle='#14122c';c.fillRect(cx-230,y-122,460,44);
+  c.fillStyle='#ff4f8b';c.font='30px Bungee,Impact,sans-serif';c.textAlign='center';c.fillText('BAR DES AMIS',cx,y-89);
+  c.fillStyle='#ffd97a';c.fillRect(cx-280,y-66,150,66);c.fillRect(cx+130,y-66,150,66);
+  c.fillStyle='#14122c';c.fillRect(cx-44,y-68,88,68);
+  c.fillStyle='#c22f3a';c.beginPath();c.moveTo(cx-300,y-70);c.lineTo(cx+300,y-70);c.lineTo(cx+320,y-50);c.lineTo(cx-320,y-50);c.fill();
+}
+function fDraw(){
+  const cv=document.getElementById('fcv');if(!cv)return;const c=cv.getContext('2d');
+  const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const top=F.players.reduce((a,p)=>Math.max(a,p.zat),0);
+  c.save();c.clearRect(0,0,FW,FH);c.fillStyle='#2b2a5a';c.fillRect(0,0,FW,FH);
+  if(!calm){c.translate(FW/2,FH/2);c.rotate(Math.sin(F.t*.9)*.022*top);c.translate(-FW/2,-FH/2);if(F.shake>0)c.translate((Math.random()-.5)*12,(Math.random()-.5)*12)}
+  const s0=F.cam,step=96;
+  for(let yy=Math.floor(s0/step)*step;yy<s0+FH+step;yy+=step){
+    const y=FH-(yy-s0)-step,cx=roadX(yy+step/2),[,,col]=sectionAt(yy),seed=Math.abs(Math.floor(yy/step));
+    fHouse(c,cx-ROADW/2-300-34,y,300,step-3,col,seed,-1);fHouse(c,cx+ROADW/2+34,y,300,step-3,col,seed+2,1);
+    c.fillStyle='#8d8a9e';c.fillRect(cx-ROADW/2-34,y,34,step);c.fillRect(cx+ROADW/2,y,34,step);
+    c.fillStyle=/Vrijdagmarkt|Vlasmarkt/.test(sectionAt(yy)[1])?'#57546e':'#3f3c58';c.fillRect(cx-ROADW/2,y,ROADW,step+1);
+    c.fillStyle='rgba(232,226,255,.4)';if(seed%2)c.fillRect(cx-3,y+20,6,50);
+  }
+  if(/Vrijdagmarkt|Vlasmarkt/.test(sectionAt(s0+300)[1])){c.fillStyle='rgba(0,0,0,.13)';for(let i=0;i<60;i++){const yy=s0+((i*97)%640),cx=roadX(yy);c.fillRect(cx-ROADW/2+((i*71)%ROADW),FH-(yy-s0)-((s0*1)%0),16,8)}}
+  const finishY=FH-(TOTAL+150-s0);
+  if(finishY>-60&&finishY<FH+260)fBar(c,finishY);
+  const objs=F.items.filter(it=>!it.hit&&it.s>s0-60&&it.s<s0+FH+60);
+  for(const it of objs){
+    const x=roadX(it.s)+it.o*(ROADW/2-40),y=FH-(it.s-s0);
+    if(top>.5&&!calm){c.globalAlpha=.32;fObj(c,it.k,x+Math.sin(F.t*2)*26*top,y+6,F.t);c.globalAlpha=1}
+    fObj(c,it.k,x,y,F.t);
+  }
+  F.players.forEach(p=>{const s=s0+FH-p.py,x=roadX(s)+p.x;fRider(c,p,x,p.py)});
+  c.textAlign='center';c.font='700 22px "Barlow Condensed",sans-serif';
+  F.floats.forEach(f=>{c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,f.x,f.y);c.fillStyle=f.col;c.fillText(f.t,f.x,f.y)});c.globalAlpha=1;
+  c.restore();
+  c.fillStyle='#14122c';c.fillRect(14,14,300,36);c.fillStyle='#ffc61e';c.font='22px Bungee,Impact,sans-serif';c.textAlign='left';c.fillText(sectionAt(s0+300)[1].slice(0,20),24,40);
+  const prog=Math.min(1,s0/TOTAL);c.fillStyle='rgba(20,18,44,.8)';c.fillRect(14,FH-22,FW-28,10);c.fillStyle='#ffc61e';c.fillRect(14,FH-22,(FW-28)*prog,10);
+}
+function fHud(){const e=document.getElementById('ftable');if(e)e.innerHTML=fTable()}
+const fTable=()=>`<table class="tbl"><thead><tr><th>Fietser</th><th>Pint</th><th>Val</th><th>Slok</th></tr></thead><tbody>${F.players.map(p=>`<tr><td><div class="who"><span class="dot" style="background:${p.c}"></span><span>${esc(p.nm)}${p.gone?' (weg)':''}<span class="zat"><i style="width:${Math.round(p.zat*100)}%"></i></span></span></div></td><td>${p.pints}</td><td>${p.falls}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table>`;
+function fPanel(){
+  const el=document.getElementById('fside'),on=(i,f)=>{const e=document.getElementById(i);if(e)e.addEventListener('click',f)};
+  if(!el)return;
+  const help=`<div class="plate"><details><summary>Spelregels</summary><div class="helptext"><p>Kantel je gsm als een stuur en hou Trappen ingedrukt om voorop te rijden. Zonder gsm: pijltjes, of A, W en D voor een tweede fietser.</p><p>Pintjes geven punten, maar je stuurt er slechter door. Water maakt je weer helderder.</p><p>Val je, dan drink je echt 1 slok. Aan een politiecontrole met te veel op: 2 slokken.</p><p>Bij Bar des Amis wint wie de meeste punten heeft. De laatste drinkt er 2.</p></div></details></div>`;
+  if(F.phase==='lobby'){
+    const url=SITE+'#stuur-'+F.code;
+    let qr='';if(window.qrcode&&!F.offline){const q=qrcode(0,'M');q.addData(url);q.make();qr=q.createSvgTag({scalable:true,margin:2})}
+    el.innerHTML=`<div class="plate stack"><p class="lead">Scan de code. Je gsm wordt je stuur.</p>
+     ${qr?`<div class="qr">${qr}</div><p class="small url">${esc(url)}</p>`:''}
+     <p class="hint" style="min-height:0">${esc(F.status)}</p>
+     ${F.offline?`<a class="linkbtn" href="${SITE}#dronken-fietsen" target="_blank" rel="noopener">Open op GitHub</a>`:''}
+     <div>${F.players.map(p=>`<div class="who" style="padding:3px 0"><span class="dot" style="background:${p.c}"></span><span>${esc(p.nm)}</span></div>`).join('')||'<p class="small">Nog geen fietsers. Maximum 4.</p>'}</div>
+     <button class="btn" id="fgo">${F.players.length?'Vertrek uit de Overpoort':'Start met de pijltjes'}</button>
+     <button class="btn alt" id="fkey2">Tweede fietser op A, W, D</button>
+     <p class="small">Voor 18+. Water of frisdrank telt net zo goed. Dit is een spel: fiets in het echt niet na het drinken.</p></div>${help}`;
+    on('fgo',fStart);on('fkey2',()=>{if(!F.players.length)fAdd('key1','Pijltjes',null);if(!F.players.some(p=>p.key==='key2'))fAdd('key2','Toetsen',null);fPanel()});
+  }else if(F.phase==='play'){
+    el.innerHTML=`<div class="plate"><h2>Op weg naar de Vlasmarkt</h2><div id="ftable">${fTable()}</div></div>${help}`;
+  }else{
+    const r=fRank();
+    el.innerHTML=`<div class="plate stack"><p class="lead">${esc(r[0].nm)} staat eerst aan de bar.</p>
+     <p class="hint" style="min-height:0">Bij Bar des Amis is alles dubbel: twee verdiepingen, twee bars.${r.length>1?' '+esc(r[r.length-1].nm)+' is laatste en drinkt 2 slokken extra.':''}</p>
+     <table class="tbl"><thead><tr><th>Fietser</th><th>Punten</th><th>Slok</th></tr></thead><tbody>${r.map(p=>`<tr><td>${esc(p.nm)}</td><td>${fScore(p)}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table>
+     <button class="btn" id="fagain">Nog een rit</button><p class="small">Dit bleef een spel. In het echt laat je de fiets staan en loop je naar huis.</p></div>${help}`;
+    on('fagain',()=>{F.phase='lobby';F.cam=0;F.t=0;F.items=[];F.players.forEach(p=>{p.zat=0;p.stun=0;p.sips=0;fSend(p,{lobby:1})});fPanel();fDraw()});
+  }
+}
+addEventListener('keydown',e=>{if(location.hash==='#dronken-fietsen'&&F.phase==='play'&&/Arrow|KeyA|KeyD|KeyW/.test(e.code)){F.keys[e.code]=1;e.preventDefault()}});
+addEventListener('keyup',e=>{F.keys[e.code]=0});
+
+/* ---------- gsm als stuur ---------- */
+let S={conn:null,tilt:0,boost:0,left:0,right:0,timer:0,tiltOk:false,lock:null};
+function stuurScreen(html){document.getElementById('stuur').innerHTML=html}
+function stuurJoin(code){
+  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Hou je gsm rechtop en kantel hem naar links en rechts. Alleen voor 18+.</p></div>`);
+  document.getElementById('stgo').addEventListener('click',async()=>{
+    const nm=document.getElementById('stnm').value.trim()||'Fietser';
+    try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){const r=await DeviceOrientationEvent.requestPermission();S.tiltOk=r==='granted'}else S.tiltOk='DeviceOrientationEvent' in window}catch(e){S.tiltOk=false}
+    try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}
+    stuurConnect(code,nm);
+  });
+}
+function stuurConnect(code,nm){
+  stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel...</p></div>`);
+  if(!window.Peer)return stuurFail('De verbinding kon niet laden. Controleer je internet.');
+  const peer=new Peer();
+  const fail=setTimeout(()=>stuurFail('Geen verbinding met de tafel. Probeer hetzelfde wifi als het scherm, en scan opnieuw.'),15000);
+  peer.on('error',e=>{clearTimeout(fail);stuurFail(e.type==='peer-unavailable'?'Die tafel bestaat niet meer. Scan de code op het scherm opnieuw.':'De verbinding viel weg. Scan de code opnieuw.')});
+  peer.on('open',()=>{
+    const conn=peer.connect('spelcafe-fiets-'+code,{serialization:'json'});S.conn=conn;
+    conn.on('open',()=>{clearTimeout(fail);conn.send({j:nm})});
+    conn.on('data',stuurData);
+    conn.on('close',()=>stuurFail('De tafel is gesloten.'));
+  });
+}
+function stuurFail(t){clearInterval(S.timer);stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p></div>`)}
+function stuurData(m){
+  if(m.full)return stuurFail(m.full);
+  if(m.ok){S.c=m.c;S.n=m.n;stuurPlay();stuurMsg('Klaar. Wacht op de start op het grote scherm.','')}
+  if(m.go)stuurMsg('Rijden!','');
+  if(m.lobby)stuurMsg('Nieuwe rit in aanmaak.','');
+  if(m.fall){stuurMsg('Gevallen: '+m.fall,'Drink '+m.n+(m.n===1?' slok':' slokken'),1);try{navigator.vibrate&&navigator.vibrate([200,80,200])}catch(e){}}
+  if(typeof m.z==='number'){const e=document.getElementById('stz');if(e)e.style.width=Math.round(m.z*100)+'%'}
+  if(m.end)stuurMsg('Plaats '+m.end+' aan Bar des Amis',m.score+' punten, '+m.sips+' slokken');
+}
+function stuurMsg(a,b,bad){const e=document.getElementById('stmsg');if(e){e.className='stmsg'+(bad?' bad':'');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`}}
+function stuurPlay(){
+  stuurScreen(`<div class="stplay" style="--me:${S.c}"><div class="stname">${esc(S.n)}<span class="zat"><i id="stz" style="width:0"></i></span></div><div id="stmsg" class="stmsg"></div>
+   <svg id="stwheel" viewBox="-100 -100 200 200" aria-hidden="true"><circle r="86" fill="none" stroke="${S.c}" stroke-width="16"/><path d="M-82 0H82M0 0V82" stroke="${S.c}" stroke-width="12"/><circle r="20" fill="${S.c}"/></svg>
+   <div class="stbtns"><button id="stl" aria-label="Links">Links</button><button id="stb">Trappen</button><button id="str" aria-label="Rechts">Rechts</button></div></div>`);
+  const hold=(id,k)=>{const b=document.getElementById(id);const d=e=>{e.preventDefault();S[k]=1;b.classList.add('on')},u=e=>{S[k]=0;b.classList.remove('on')};b.addEventListener('pointerdown',d);['pointerup','pointercancel','pointerleave'].forEach(v=>b.addEventListener(v,u));b.addEventListener('contextmenu',e=>e.preventDefault())};
+  hold('stl','left');hold('str','right');hold('stb','boost');
+  clearInterval(S.timer);
+  S.timer=setInterval(()=>{
+    const btn=S.right-S.left, x=btn||S.tilt;
+    const w=document.getElementById('stwheel');if(w)w.style.transform=`rotate(${x*80}deg)`;
+    if(S.conn&&S.conn.open)try{S.conn.send({s:[+x.toFixed(2),S.boost]})}catch(e){}
+  },66);
+}
+addEventListener('deviceorientation',e=>{
+  if(e.gamma==null)return;
+  const ang=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+  const v=ang===90?e.beta:(ang===270||ang===-90)?-e.beta:e.gamma;
+  const d=Math.abs(v)<4?0:v;
+  S.tilt=Math.max(-1,Math.min(1,d/32));
+});
+
 /* ---------- keuzemenu ---------- */
 const TUK_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#2b4f45"/><rect y="62" width="320" height="56" fill="#3a3850"/><rect x="132" width="56" height="180" fill="#3a3850"/><path d="M0 90h320M160 0v180" stroke="#e8e2ff" stroke-width="3" stroke-dasharray="18 14" opacity=".55"/><rect x="70" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="73" y="75" width="60" height="30" rx="12" fill="#ffc61e"/><rect x="88" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><rect x="186" y="72" width="66" height="36" rx="14" fill="#14122c"/><rect x="189" y="75" width="60" height="30" rx="12" fill="#7a5cf0"/><rect x="204" y="79" width="24" height="22" rx="6" fill="#14122c" opacity=".75"/><use href="#s-S" x="28" y="10" width="46" height="46"/><use href="#s-4" x="246" y="124" width="46" height="46"/><rect x="214" y="12" width="44" height="44" rx="8" fill="#ff8a1f"/><text x="236" y="50" text-anchor="middle" class="t-sign" font-size="36" fill="#2b1400">?</text></svg>`;
 const RACE_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#36a05e"/><rect width="320" height="52" fill="#2b2a5a"/><rect y="46" width="320" height="10" fill="#f7f3ff"/><rect x="214" y="58" width="14" height="122" rx="6" fill="#1f6b3c"/><g transform="translate(92 158) scale(.8)">${horseArt(0)}</g><g transform="translate(186 110) scale(.62)">${horseArt(2)}</g><g transform="translate(260 164) scale(.72)">${horseArt(3)}</g></svg>`;
 const BUS_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#352f6b"/><rect y="130" width="320" height="50" fill="#3f3c58"/><g transform="translate(160 136)"><rect x="-108" y="-92" width="216" height="92" rx="14" fill="#7a5cf0"/><rect x="-108" y="-30" width="216" height="14" fill="#ffc61e"/>${[0,1,2,3].map(i=>`<rect x="${-96+i*42}" y="-80" width="36" height="36" rx="4" fill="#cfe7ff"/>`).join('')}<rect x="72" y="-80" width="30" height="76" rx="4" fill="#cfe7ff"/>${[-66,62].map(x=>`<circle cx="${x}" cy="4" r="20" fill="#14122c"/><circle cx="${x}" cy="4" r="8" fill="#c9c4d9"/>`).join('')}</g></svg>`;
+const FIETS_ART=`<svg viewBox="0 0 320 180" aria-hidden="true"><rect width="320" height="180" fill="#7a3f5e"/><rect x="90" width="140" height="180" fill="#3f3c58"/><rect x="108" y="0" width="104" height="44" fill="#14122c"/><text x="160" y="28" text-anchor="middle" class="t-sign" font-size="11" fill="#ff4f8b">BAR DES AMIS</text><g transform="rotate(14 160 120)"><path d="M160 84v76" stroke="#14122c" stroke-width="9"/><path d="M140 96h40" stroke="#e8e2ff" stroke-width="5"/><ellipse cx="160" cy="120" rx="22" ry="15" fill="#ffc61e"/><circle cx="160" cy="114" r="10" fill="#f2d3b3"/></g><rect x="250" y="76" width="44" height="78" rx="9" fill="#14122c"/><rect x="255" y="83" width="34" height="58" fill="#29c7d8"/></svg>`;
 const GAMES=[
  {id:'zatte-tuk-tuk',n:'Zatte Tuk-Tuk',d:'Rij studenten door Gent van de Overpoort tot de Sint-Pietersabdij en trek kanskaarten met drinkopdrachten.',cats:['Drankspel','Bordspel'],pl:'2 tot 6 spelers',art:TUK_ART},
  {id:'paardenrace',n:'Paardenrace',d:'Zet slokken in op je paard en volg de race over de hindernissen tot aan de meet.',cats:['Drankspel','Wedspel'],pl:'2 tot 8 spelers',art:RACE_ART},
  {id:'bussen',n:'Bussen',d:'Raad je tickets, overleef de piramide en hoop dat je de bus naar de Overpoort niet in moet.',cats:['Drankspel','Raadspel'],pl:'2 tot 8 spelers',art:BUS_ART},
+ {id:'dronken-fietsen',n:'Dronken fietsen naar Bar des Amis',d:'Scan de QR-code, je gsm wordt je stuur. Fiets van de Overpoort tot de Vlasmarkt zonder te vallen.',cats:['Drankspel','Actiespel'],pl:'1 tot 4 spelers',art:FIETS_ART},
  {n:'Kingsen',d:'Trek een kaart en volg de regel die erbij hoort.',cats:['Drankspel','Kaartspel'],pl:'3 tot 10 spelers',art:'K'},
  {n:'Mexicaantje',d:'Dobbel onder de beker en bluf je door de ronde.',cats:['Drankspel','Dobbelspel'],pl:'3 tot 10 spelers',art:'21'},
  {n:'Ik heb nog nooit',d:'Stellingen voor de tafel. Wie het wel deed, drinkt.',cats:['Drankspel','Praatspel'],pl:'3 of meer spelers',art:'?!'}
@@ -1229,18 +1542,24 @@ function renderMenu(){
   document.getElementById('empty').hidden=list.length>0;
 }
 function route(){
-  const inGame=location.hash==='#zatte-tuk-tuk', inRace=location.hash==='#paardenrace', inBus=location.hash==='#bussen', any=inGame||inRace||inBus;
+  const stuurM=location.hash.match(/^#stuur-([a-z]{4})$/);
+  document.getElementById('stuur').hidden=!stuurM;
+  if(stuurM){['menu','game','race','bus','fiets'].forEach(i=>document.getElementById(i).hidden=true);if(!document.getElementById('stuur').innerHTML)stuurJoin(stuurM[1]);return}
+  const inGame=location.hash==='#zatte-tuk-tuk', inRace=location.hash==='#paardenrace', inBus=location.hash==='#bussen', inFiets=location.hash==='#dronken-fietsen', any=inGame||inRace||inBus||inFiets;
   document.getElementById('menu').hidden=any;
   document.getElementById('bus').hidden=!inBus;
+  document.getElementById('fiets').hidden=!inFiets;
   document.getElementById('game').hidden=!inGame;
   document.getElementById('race').hidden=!inRace;
   document.getElementById('back').hidden=!any;
   document.getElementById('tag').hidden=any;
-  document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':inBus?'Bus<span>sen</span>':'Spel<span>café</span>';
+  document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':inBus?'Bus<span>sen</span>':inFiets?'Dronken <span>fietsen</span>':'Spel<span>café</span>';
   stopAuto();
   if(inGame){render();if(zoom==='near')focusOn(G?G.P[G.cur].pos:nid.ku,true)}
   else if(inRace)renderRace();
   else if(inBus)renderBus();
+  else if(inFiets&&F.phase==='lobby')fLobby();
+  else if(inFiets){fPanel();fDraw()}
   else renderMenu();
 }
 function go(h){location.hash=h;route()}
