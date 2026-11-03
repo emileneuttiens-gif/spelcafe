@@ -1304,6 +1304,7 @@ function fNet(){
   F.status='Tafel wordt klaargezet.';
   const peer=new Peer('spelcafe-fiets-'+F.code);F.peer=peer;
   peer.on('open',()=>{F.status='Scan de code met je gsm.';fPanel()});
+  peer.on('disconnected',()=>{setTimeout(()=>{if(!peer.destroyed&&peer.disconnected)try{peer.reconnect()}catch(e){}},800)});
   peer.on('error',e=>{F.status='De verbinding lukte niet ('+(e.type||'fout')+'). Herlaad de pagina of speel met de toetsen.';fPanel()});
   peer.on('connection',conn=>{
     conn.on('data',m=>fMsg(conn,m));
@@ -1317,11 +1318,16 @@ function fMsg(conn,m){
     const name=m.j.trim().slice(0,12)||'Fietser';
     if(!p){if(F.phase!=='lobby'){conn.send({full:'De rit is al bezig. Wacht op de volgende.'});return}
       p=fAdd(conn.peer,name,conn);if(!p){conn.send({full:'De fietsenstalling is vol: maximum 4 fietsers.'});return}}
-    conn.send({ok:1,c:p.c,n:p.nm});fPanel();fDraw();return;
+    p.seen=performance.now();conn.send({ok:1,c:p.c,n:p.nm});fPanel();fDraw();return;
   }
   const p=F.players.find(x=>x.conn===conn);
+  if(p)p.seen=performance.now(),p.gone=false;
   if(p&&Array.isArray(m.s)){p.in=Math.max(-1,Math.min(1,+m.s[0]||0))}
 }
+setInterval(()=>{
+  if(F.phase==='lobby'){const n=F.players.length;F.players=F.players.filter(p=>!p.conn||performance.now()-(p.seen||0)<4000);if(F.players.length!==n&&location.hash==='#dronken-fietsen'){F.players.forEach((p,i)=>{p.c=FCOL[i];fSend(p,{ok:1,c:p.c,n:p.nm})});fPanel();fDraw()}}
+  else F.players.forEach(p=>{if(p.conn&&performance.now()-(p.seen||0)>2500&&!p.gone){p.gone=true;p.in=0;fHud()}});
+},1000);
 function fItems(){
   const a=[];if(EMPTY)return a;let s=1800;
   const types=['paal','put','fiets','duif','tram','mens'];
@@ -1341,7 +1347,7 @@ function fStart(){
   F.items=fItems();F.cam=0;F.t=0;F.vel=0;F.speed=0;F.floats=[];F.phase='play';
   const n=F.players.length;
   F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*95,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false});fSend(p,{go:1})});
-  F.last=performance.now();fPanel();F.raf=requestAnimationFrame(fLoop);
+  F.last=performance.now();F.dts=0;if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}fPanel();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(fLoop);
 }
 function fFloat(p,t,col){const s=F.cam+FH-p.py,f=fr(s);F.floats.push({x:roadX(s)+p.x,y:p.py-40,wx:f.x-f.tz*p.x,wz:f.z+f.tx*p.x,h:0,t,col,a:1.4})}
 function fFall(p,why,n=1){
@@ -1384,14 +1390,24 @@ function fRank(){return F.players.slice().sort((a,b)=>fScore(b)-fScore(a))}
 function fEnd(){
   F.phase='end';cancelAnimationFrame(F.raf);
   const r=fRank();
-  if(r.length>1)r[r.length-1].sips+=2;
+  if(r.length>1&&!EMPTY)r[r.length-1].sips+=2;
   r.forEach((p,i)=>fSend(p,{end:i+1,score:fScore(p),sips:p.sips}));
   fPanel();fDraw();
 }
+function fAdapt(ms){
+  if(!T3||t3state!=='ready')return;
+  F.fms=F.fms?F.fms*.97+ms*.03:ms;F.fcn=(F.fcn||0)+1;if(F.fcn<75)return;F.fcn=0;
+  const mx=Math.min(devicePixelRatio||1,1.5);T3.pr=T3.pr||mx;
+  if(F.fms>26&&T3.pr>.6){T3.pr=Math.max(.6,T3.pr-.2);T3.R3.setPixelRatio(T3.pr);f3Size()}
+  else if(F.fms<14&&T3.pr<mx){T3.pr=Math.min(mx,T3.pr+.1);T3.R3.setPixelRatio(T3.pr);f3Size()}
+}
 function fLoop(now){
   if(F.phase!=='play')return;
-  const dt=Math.min(.05,(now-F.last)/1000);F.last=now;
-  fStep(dt);fDraw();
+  const raw=(now-F.last)/1000;F.last=now;let dt=Math.min(.25,Math.max(0,raw));
+  F.dts=F.dts?F.dts*.85+dt*.15:dt;if(Math.abs(dt-F.dts)<.008)dt=F.dts;
+  fAdapt(raw*1000);
+  let left=dt;while(left>0&&F.phase==='play'){const st=Math.min(left,1/30);fStep(st);left-=st}
+  fDraw();
   F.hud=(F.hud||0)+dt;if(F.hud>.3){F.hud=0;fHud()}
   if(F.phase==='play')F.raf=requestAnimationFrame(fLoop);
 }
@@ -1485,15 +1501,16 @@ function fPanel(){
     el.innerHTML=`<div class="plate"><h2>Testrit: lege straat</h2><div id="ftable">${fTable()}</div></div>${help}`;
   }else{
     const r=fRank();
-    el.innerHTML=`<div class="plate stack"><p class="lead">${esc(r[0].nm)} staat eerst aan de bar.</p>
-     <p class="hint" style="min-height:0">Bij Bar des Amis is alles dubbel: twee verdiepingen, twee bars.${r.length>1?' '+esc(r[r.length-1].nm)+' is laatste en drinkt 2 slokken extra.':''}</p>
+    el.innerHTML=`<div class="plate stack"><p class="lead">${EMPTY?'Iedereen is aan de bar.':esc(r[0].nm)+' staat eerst aan de bar.'}</p>
+     <p class="hint" style="min-height:0">Bij Bar des Amis is alles dubbel: twee verdiepingen, twee bars.${r.length>1&&!EMPTY?' '+esc(r[r.length-1].nm)+' is laatste en drinkt 2 slokken extra.':''}</p>
      <table class="tbl"><thead><tr><th>Fietser</th><th>Punten</th><th>Slok</th></tr></thead><tbody>${r.map(p=>`<tr><td>${esc(p.nm)}</td><td>${fScore(p)}</td><td>${p.sips}</td></tr>`).join('')}</tbody></table>
      <button class="btn" id="fagain">Nog een rit</button><p class="small">Dit bleef een spel. In het echt laat je de fiets staan en loop je naar huis.</p></div>${help}`;
-    on('fagain',()=>{F.phase='lobby';F.cam=0;F.t=0;F.items=[];F.players.forEach(p=>{p.zat=0;p.stun=0;p.sips=0;fSend(p,{lobby:1})});fPanel();fDraw()});
+    on('fagain',()=>{F.phase='lobby';F.cam=0;F.t=0;F.items=[];F.players=F.players.filter(p=>!p.gone);F.players.forEach((p,i)=>{p.zat=0;p.stun=0;p.sips=0;p.c=FCOL[i];fSend(p,{lobby:1})});fPanel();fDraw()});
   }
 }
 addEventListener('keydown',e=>{if(location.hash==='#dronken-fietsen'&&F.phase==='play'&&/Arrow|KeyA|KeyD/.test(e.code)){F.keys[e.code]=1;e.preventDefault()}});
 addEventListener('keyup',e=>{F.keys[e.code]=0});
+addEventListener('blur',()=>{F.keys={}});
 
 /* ---------- 3D-weergave van de rit: één camera achter alle fietsers ---------- */
 let T3=null,t3state='idle';
@@ -1656,10 +1673,11 @@ function f3Render(){
   cam.fov=66+(calm?0:Math.sin(F.t*1.1)*5*top)+((F.speed||0)/RIDE)*4;cam.updateProjectionMatrix();
   sky.position.copy(cam.position);
   R3.render(sc,cam);
+  F.hudC=(F.hudC||0)+1;if(!F.floats.length&&F.phase==='play'&&!F.hadF&&F.hudC%8)return;F.hadF=F.floats.length>0;
   const c=document.getElementById('fcv').getContext('2d');c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,FW,FH);
   c.textAlign='center';c.font='700 24px "Barlow Condensed",sans-serif';
   F.floats.forEach(f=>{v.set(f.wx,120+(f.h||0),f.wz).project(cam);const x=(v.x+1)/2*FW,y=(1-v.y)/2*FH;c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,x,y);c.fillStyle=f.col;c.fillText(f.t,x,y)});c.globalAlpha=1;
-  fHudCanvas(c,s0);
+  F.hudT=0;fHudCanvas(c,s0);
 }
 function fHudCanvas(c,s0){
   c.fillStyle='#14122c';c.fillRect(14,14,300,36);c.fillStyle='#ffc61e';c.font='22px Bungee,Impact,sans-serif';c.textAlign='left';c.fillText(sectionAt(s0+300)[1].slice(0,20),24,40);
@@ -1697,7 +1715,8 @@ function stuurConnect(code,nm){
     conn.on('close',()=>stuurFail('De tafel is gesloten.'));
   });
 }
-function stuurFail(t){clearInterval(S.timer);stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p></div>`)}
+function stuurFail(t){clearInterval(S.timer);S.fixed=false;document.getElementById('stuur').removeAttribute('style');stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p><button class="btn" id="stretry">Opnieuw verbinden</button></div>`);document.getElementById('stretry').addEventListener('click',()=>location.reload())}
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.lock)try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}});
 function stuurData(m){
   if(m.full)return stuurFail(m.full);
   if(m.ok){S.c=m.c;S.n=m.n;stuurPlay();stuurMsg('Klaar. Wacht op de start op het grote scherm.','')}
@@ -1720,7 +1739,7 @@ function stuurPlay(){
     const btn=S.right-S.left, x=btn||S.tilt;
     const w=document.getElementById('stwheel');if(w)w.style.transform=`rotate(${x*80}deg)`;
     if(S.conn&&S.conn.open)try{S.conn.send({s:[+x.toFixed(2)]})}catch(e){}
-  },66);
+  },40);
 }
 function scrAngle(){const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0);return((a%360)+360)%360}
 function stuurFix(){
@@ -1784,6 +1803,7 @@ function route(){
   document.getElementById('tag').hidden=any;
   document.getElementById('brand').innerHTML=inGame?'Zatte <span>Tuk-Tuk</span>':inRace?'Paarden<span>race</span>':inBus?'Bus<span>sen</span>':inFiets?'Dronken <span>fietsen</span>':'Spel<span>café</span>';
   stopAuto();
+  if(!inFiets&&F.phase==='play'){cancelAnimationFrame(F.raf);F.phase='lobby';F.cam=0;F.t=0;F.items=[];F.players.forEach(p=>fSend(p,{lobby:1}))}
   if(inGame){render();if(zoom==='near')focusOn(G?G.P[G.cur].pos:nid.ku,true)}
   else if(inRace)renderRace();
   else if(inBus)renderBus();
