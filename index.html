@@ -197,16 +197,21 @@ button.tile:hover{border-color:var(--taxi)}
 .stbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tilt .stbtns{display:none}
 .stbtns button{border:0;border-radius:10px;height:96px;background:var(--dusk-3);color:var(--ink);font:700 19px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;touch-action:none}
-.stplay{grid-template-columns:1fr 1.15fr 1fr;grid-template-rows:auto auto minmax(0,1fr);grid-template-areas:"l name r" "l msg r" "l wheel r";gap:8px;padding:8px max(10px,env(safe-area-inset-left,0px))}
-.stname{grid-area:name;text-align:center;font-size:15px}
-.stmsg{grid-area:msg;min-height:44px;padding:4px}
-.stmsg b{font-size:15px}.stmsg span{font-size:13px}
-#stwheel{grid-area:wheel}
+.stplay{position:relative;width:100%;height:100%;overflow:hidden;display:block;padding:0;background:#2b2a5a}
+.stview{position:absolute;inset:0}
+.stview #fgl{width:100%;height:100%;aspect-ratio:auto;border-radius:0;display:block}
+.sttop{position:absolute;z-index:3;left:max(10px,env(safe-area-inset-left,0px));top:8px;right:max(10px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:auto minmax(60px,110px) minmax(0,1fr);gap:10px;align-items:center;pointer-events:none}
+#sthud{font:400 15px/1 var(--f-sign);color:var(--taxi);background:rgba(20,18,44,.8);padding:6px 9px;border-radius:5px;white-space:nowrap}
+.stbar{height:7px;background:rgba(20,18,44,.75);border-radius:4px;overflow:hidden}
+.stbar i{display:block;height:100%;width:0;background:var(--taxi)}
+.stmsg{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);max-width:80%;min-height:0;padding:10px 16px;text-align:center;background:rgba(20,18,44,.85);border-radius:8px;display:grid;gap:2px}
+.stmsg.off{display:none}
+.stmsg b{font-size:17px}.stmsg span{font-size:14px;color:var(--muted)}
+#stwheel{position:absolute;inset:18% 30%;width:40%;height:64%}
 .stbtns{display:contents}
-.stbtns button{height:auto;min-height:0}
-#stl{grid-area:l}#str{grid-area:r}
-.tilt .stbtns{display:none}
-.tilt.stplay{grid-template-columns:minmax(0,1fr);grid-template-areas:"name" "msg" "wheel"}
+.stbtns button{position:absolute;z-index:2;top:0;bottom:0;width:32%;height:auto;min-height:0;border-radius:0;background:rgba(53,47,107,.28)}
+#stl{left:0}#str{right:0}
+.tilt .stbtns button{display:none}
 .stbtns .on{outline:4px solid var(--ink)}
 .busmain{min-width:0;display:grid;gap:14px}
 #busscene{display:block;width:100%;height:auto;border-radius:8px;background:#3a2f7a}
@@ -1328,6 +1333,7 @@ setInterval(()=>{
   if(F.phase==='lobby'){const n=F.players.length;F.players=F.players.filter(p=>!p.conn||performance.now()-(p.seen||0)<4000);if(F.players.length!==n&&location.hash==='#dronken-fietsen'){F.players.forEach((p,i)=>{p.c=FCOL[i];fSend(p,{ok:1,c:p.c,n:p.nm})});fPanel();fDraw()}}
   else F.players.forEach(p=>{if(p.conn&&performance.now()-(p.seen||0)>2500&&!p.gone){p.gone=true;p.in=0;fHud()}});
 },1000);
+const fHit=it=>{it.hit=1;F.players.forEach(p=>fSend(p,{hit:it.i}))};
 function fItems(){
   const a=[];if(EMPTY)return a;let s=1800;
   const types=['paal','put','fiets','duif','tram','mens'];
@@ -1340,13 +1346,14 @@ function fItems(){
       if(Math.random()<hard*.7)a.push({k:'paal',s:s+20,o:-o*.8});}
     s+=(230-hard*90+Math.random()*90)*5;
   }
-  return a;
+  a.forEach((x,i)=>{x.i=i});return a;
 }
 function fStart(){
   if(!F.players.length)fAdd('key1','Pijltjes',null);
   F.items=fItems();F.cam=0;F.t=0;F.vel=0;F.speed=0;F.floats=[];F.phase='play';
   const n=F.players.length;
-  F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*95,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false});fSend(p,{go:1})});
+  F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*95,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false})});
+  {const pl=F.players.map(p=>[p.key,p.nm,p.c,p.x]),it=F.items.map(x=>[x.k,x.s,x.o,x.v||0]);F.players.forEach((p,i)=>fSend(p,{go:1,me:i,pl,it}))}
   F.last=performance.now();F.dts=0;if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}fPanel();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(fLoop);
 }
 function fFloat(p,t,col){const s=F.cam+FH-p.py,f=fr(s);F.floats.push({x:roadX(s)+p.x,y:p.py-40,wx:f.x-f.tz*p.x,wz:f.z+f.tx*p.x,h:0,t,col,a:1.4})}
@@ -1376,10 +1383,10 @@ function fStep(dt){
     for(const it of F.items){
       if(it.hit||Math.abs(it.s-s)>40)continue;
       const dx=Math.abs(itemX(it)-p.x);
-      if(it.k==='pint'&&dx<34){it.hit=1;p.pints++;p.zat=Math.min(1,p.zat+.11);fFloat(p,'+1 pintje','#ffc61e');fSend(p,{z:p.zat})}
-      else if(it.k==='water'&&dx<34){it.hit=1;p.zat=Math.max(0,p.zat-.3);fFloat(p,'Water, helderder','#7fd4ff');fSend(p,{z:p.zat})}
-      else if(it.k==='agent'&&dx<38){if(p.safe>0)continue;if(p.zat>.45){it.hit=1;p.fine++;fFall(p,'politiecontrole',2)}else{it.hit=1;fFloat(p,'Agent knikt: mag door','#8ed13f')}}
-      else if(OBJ[it.k]&&dx<OBJ[it.k].r+14){it.hit=1;fFall(p,OBJ[it.k].n)}
+      if(it.k==='pint'&&dx<34){fHit(it);p.pints++;p.zat=Math.min(1,p.zat+.11);fFloat(p,'+1 pintje','#ffc61e');fSend(p,{z:p.zat})}
+      else if(it.k==='water'&&dx<34){fHit(it);p.zat=Math.max(0,p.zat-.3);fFloat(p,'Water, helderder','#7fd4ff');fSend(p,{z:p.zat})}
+      else if(it.k==='agent'&&dx<38){if(p.safe>0)continue;if(p.zat>.45){fHit(it);p.fine++;fFall(p,'politiecontrole',2)}else{fHit(it);fFloat(p,'Agent knikt: mag door','#8ed13f')}}
+      else if(OBJ[it.k]&&dx<OBJ[it.k].r+14){fHit(it);fFall(p,OBJ[it.k].n)}
     }
   });
   F.floats.forEach(f=>{f.a-=dt;f.y-=26*dt;f.h+=34*dt});F.floats=F.floats.filter(f=>f.a>0);
@@ -1397,8 +1404,8 @@ function fEnd(){
 function fAdapt(ms){
   if(!T3||t3state!=='ready')return;
   F.fms=F.fms?F.fms*.97+ms*.03:ms;F.fcn=(F.fcn||0)+1;if(F.fcn<75)return;F.fcn=0;
-  const mx=Math.min(devicePixelRatio||1,1.5);T3.pr=T3.pr||mx;
-  if(F.fms>26&&T3.pr>.6){T3.pr=Math.max(.6,T3.pr-.2);T3.R3.setPixelRatio(T3.pr);f3Size()}
+  const mx=Math.min(devicePixelRatio||1,F.phone?1.25:1.5);T3.pr=T3.pr||mx;
+  if(F.fms>26&&T3.pr>.5){T3.pr=Math.max(.5,T3.pr-.2);T3.R3.setPixelRatio(T3.pr);f3Size()}
   else if(F.fms<14&&T3.pr<mx){T3.pr=Math.min(mx,T3.pr+.1);T3.R3.setPixelRatio(T3.pr);f3Size()}
 }
 function fLoop(now){
@@ -1408,6 +1415,7 @@ function fLoop(now){
   fAdapt(raw*1000);
   let left=dt;while(left>0&&F.phase==='play'){const st=Math.min(left,1/30);fStep(st);left-=st}
   fDraw();
+  F.tx=(F.tx||0)+dt;if(F.tx>.06&&F.phase==='play'){F.tx=0;const w=[Math.round(F.cam),Math.round(F.speed),+F.t.toFixed(2),F.players.map(p=>[Math.round(p.x),Math.round(p.py),Math.round(p.vx),p.stun>0?1:0,p.safe>0?1:0,Math.round(p.zat*100)])];F.players.forEach(p=>fSend(p,{w}))}
   F.hud=(F.hud||0)+dt;if(F.hud>.3){F.hud=0;fHud()}
   if(F.phase==='play')F.raf=requestAnimationFrame(fLoop);
 }
@@ -1517,11 +1525,11 @@ let T3=null,t3state='idle';
 function f3Load(){
   if(t3state!=='idle')return;t3state='loading';
   const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-  sc.onload=async()=>{try{await document.fonts.ready;f3Build();t3state='ready';document.getElementById('fgl').hidden=false;const hc=document.getElementById('fcv');hc.width=1920;hc.height=1080;document.getElementById('ffs').hidden=false;f3Size()}catch(e){t3state='failed'}};
+  sc.onload=async()=>{try{await document.fonts.ready;f3Build();t3state='ready';document.getElementById('fgl').hidden=false;if(F.phone){const w=document.getElementById('stwheel');if(w)w.style.display='none';T3.pr=Math.min(devicePixelRatio||1,1.25);T3.R3.setPixelRatio(T3.pr)}else{const hc=document.getElementById('fcv');hc.width=1920;hc.height=1080;document.getElementById('ffs').hidden=false}f3Size()}catch(e){t3state='failed'}};
   sc.onerror=()=>{t3state='failed'};document.head.appendChild(sc);
 }
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=8;return t}
-function f3Size(){if(!T3)return;const el=document.getElementById('fgl'),w=Math.min(el.clientWidth||FW,1920);if(!w)return;T3.R3.setSize(w,Math.round(w*9/16),false);fDraw()}
+function f3Size(){if(!T3)return;if(F.phone){const w=S.W||innerWidth,h=S.H||innerHeight;T3.R3.setSize(w,h,false);T3.cam.aspect=w/h;T3.cam.updateProjectionMatrix();fDraw();return}const el=document.getElementById('fgl'),w=Math.min(el.clientWidth||FW,1920);if(!w)return;T3.R3.setSize(w,Math.round(w*9/16),false);fDraw()}
 addEventListener('resize',f3Size);document.addEventListener('fullscreenchange',f3Size);
 function signMesh(text,w,h,bg,fg,font){
   const tx=canvasTex(512,Math.round(512*h/w),(c,W,H)=>{c.fillStyle=bg;c.fillRect(0,0,W,H);c.fillStyle=fg;c.font=(font||Math.round(H*.56))+'px Bungee,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,W/2,H/2+4,W-24)});
@@ -1532,7 +1540,7 @@ function box(w,h,d,col,x,y,z,g){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h
 function cyl(a,b,h,col,x,y,z,g,seg=12){const m=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,seg),std(col));m.position.set(x,y,z);if(g)g.add(m);return m}
 function f3Build(){
   const gl=document.getElementById('fgl');
-  const R3=new THREE.WebGLRenderer({canvas:gl,antialias:true,preserveDrawingBuffer:true});
+  const R3=new THREE.WebGLRenderer({canvas:gl,antialias:!F.phone,preserveDrawingBuffer:!F.phone,powerPreference:'high-performance'});
   R3.setPixelRatio(Math.min(devicePixelRatio||1,1.5));R3.setSize(FW,FH,false);
   const sc=new THREE.Scene();sc.background=new THREE.Color('#e0784f');sc.fog=new THREE.Fog('#b0607a',5200,18500);
   sc.add(new THREE.HemisphereLight('#ffd9b0','#3a2f7a',.82));
@@ -1659,7 +1667,7 @@ function f3Render(){
     r.body.position.y=40+Math.abs(Math.sin(pedal))*1.4;g.userData.wheels.forEach(w=>{w.rotation.x=-s/19});
     g.visible=!(p.safe>0&&p.stun<=0&&Math.floor(F.t*10)%2);
   });
-  const avg=F.players.length?sumx/F.players.length:0,cs=s0+FH-430-340,cf=fr(cs),lf=fr(cs+520);
+  const mine=F.phone&&F.players[F.me],avg=mine?mine.x*2.6:F.players.length?sumx/F.players.length:0,cs=s0+FH-(mine?mine.py:430)-340,cf=fr(cs),lf=fr(cs+520);
   const tgt=head(lf),dtc=Math.max(0,F.t-(T3.lt||0));T3.lt=F.t;T3.dtc=dtc||.016;
   if(T3.yaw==null||dtc>.2)T3.yaw=tgt;else T3.yaw+=Math.atan2(Math.sin(tgt-T3.yaw),Math.cos(tgt-T3.yaw))*Math.min(1,dtc*7);
   const wob=calm?0:top*Math.sin(F.t*1.3)*46,tox=avg*.3+wob;T3.ox=T3.ox==null||dtc>.2?tox:T3.ox+(tox-T3.ox)*Math.min(1,dtc*5);
@@ -1673,7 +1681,7 @@ function f3Render(){
   cam.fov=66+(calm?0:Math.sin(F.t*1.1)*5*top)+((F.speed||0)/RIDE)*4;cam.updateProjectionMatrix();
   sky.position.copy(cam.position);
   R3.render(sc,cam);
-  F.hudC=(F.hudC||0)+1;if(!F.floats.length&&F.phase==='play'&&!F.hadF&&F.hudC%8)return;F.hadF=F.floats.length>0;
+  if(F.phone)return;F.hudC=(F.hudC||0)+1;if(!F.floats.length&&F.phase==='play'&&!F.hadF&&F.hudC%8)return;F.hadF=F.floats.length>0;
   const c=document.getElementById('fcv').getContext('2d');c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,FW,FH);
   c.textAlign='center';c.font='700 24px "Barlow Condensed",sans-serif';
   F.floats.forEach(f=>{v.set(f.wx,120+(f.h||0),f.wz).project(cam);const x=(v.x+1)/2*FW,y=(1-v.y)/2*FH;c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,x,y);c.fillStyle=f.col;c.fillText(f.t,x,y)});c.globalAlpha=1;
@@ -1689,11 +1697,37 @@ function fDraw(){
   if(t3state==='ready')f3Render();else fDraw2D();
 }
 
+/* ---------- race op de gsm: zelfde 3D-rit, met live posities van het grote scherm ---------- */
+function pStart(m){
+  F.phone=true;F.me=m.me;F.items=(m.it||[]).map((a,i)=>({k:a[0],s:a[1],o:a[2],v:a[3],i}));
+  F.players=m.pl.map(a=>({key:a[0],nm:a[1],c:a[2],x:a[3],tx:a[3],py:430,tpy:430,vx:0,zat:0,stun:0,safe:0}));
+  F.cam=0;F.srvCam=0;F.t=0;F.speed=0;F.phase='play';F.floats=[];F.last=performance.now();F.dts=0;
+  if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}
+  stuurHud();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(pLoop);
+}
+function pData(w){
+  F.srvCam=w[0];F.speed=w[1];F.t0=w[2];
+  w[3].forEach((a,i)=>{const p=F.players[i];if(!p)return;p.tx=a[0];p.tpy=a[1];p.vx=a[2];p.stun=a[3]?1:0;p.safe=a[4]?1:0;p.zat=a[5]/100});
+}
+function pLoop(now){
+  if(F.phase!=='play')return;
+  const raw=(now-F.last)/1000,dt=Math.min(.25,Math.max(0,raw));F.last=now;
+  F.t+=dt;F.cam+=F.speed*dt;F.cam+=(F.srvCam+F.speed*.04-F.cam)*Math.min(1,dt*3);
+  F.players.forEach(p=>{p.x+=(p.tx-p.x)*Math.min(1,dt*14);p.py+=(p.tpy-p.py)*Math.min(1,dt*8)});
+  fAdapt(raw*1000);fDraw();stuurHud();
+  if(F.phase==='play')F.raf=requestAnimationFrame(pLoop);
+}
+function stuurHud(){
+  const e=document.getElementById('sthud');if(!e)return;
+  const n=sectionAt(F.cam+300)[1],pct=Math.min(100,Math.round(F.cam/TOTAL*100)),k=n+pct;
+  if(k===S.hudK)return;S.hudK=k;e.textContent=n;const b=document.getElementById('stprog');if(b)b.style.width=pct+'%';
+}
+
 /* ---------- gsm als stuur ---------- */
 let S={conn:null,tilt:0,boost:0,left:0,right:0,timer:0,tiltOk:false,lock:null};
 function stuurScreen(html){document.getElementById('stuur').innerHTML=html}
 function stuurJoin(code){
-  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Na het verbinden staat het stuur vast in liggende stand: hou je gsm horizontaal vast als een stuur. Zet automatisch draaien van je scherm uit, dan blijft het beeld helemaal stil. Alleen voor 18+.</p></div>`);
+  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Je ziet de race op je gsm in liggende stand: hou hem horizontaal vast en kantel om te sturen. Zet automatisch draaien van je scherm uit, dan blijft het beeld helemaal stil. Alleen voor 18+.</p></div>`);
   document.getElementById('stgo').addEventListener('click',async()=>{
     const nm=document.getElementById('stnm').value.trim()||'Fietser';
     try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){const r=await DeviceOrientationEvent.requestPermission();S.tiltOk=r==='granted'}else S.tiltOk='DeviceOrientationEvent' in window}catch(e){S.tiltOk=false}
@@ -1720,24 +1754,28 @@ document.addEventListener('visibilitychange',async()=>{if(document.visibilitySta
 function stuurData(m){
   if(m.full)return stuurFail(m.full);
   if(m.ok){S.c=m.c;S.n=m.n;stuurPlay();stuurMsg('Klaar. Wacht op de start op het grote scherm.','')}
-  if(m.go)stuurMsg('Rijden!','');
-  if(m.lobby)stuurMsg('Nieuwe rit in aanmaak.','');
+  if(m.go){stuurMsg('','');pStart(m)}
+  if(m.w&&F.phase==='play')pData(m.w);
+  if(typeof m.hit==='number'&&F.items&&F.items[m.hit])F.items[m.hit].hit=1;
+  if(m.lobby){F.phase='lobby';F.cam=0;F.t=0;F.items=[];cancelAnimationFrame(F.raf);stuurMsg('Nieuwe rit in aanmaak.','');fDraw()}
   if(m.fall){stuurMsg('Gevallen: '+m.fall,'Drink '+m.n+(m.n===1?' slok':' slokken'),1);try{navigator.vibrate&&navigator.vibrate([200,80,200])}catch(e){}}
   if(typeof m.z==='number'){const e=document.getElementById('stz');if(e)e.style.width=Math.round(m.z*100)+'%'}
-  if(m.end)stuurMsg('Plaats '+m.end+' aan Bar des Amis',m.score+' punten, '+m.sips+' slokken');
+  if(m.end){F.phase='end';cancelAnimationFrame(F.raf);stuurMsg('Plaats '+m.end+' aan Bar des Amis',EMPTY?'Je bent aangekomen':m.score+' punten, '+m.sips+' slokken')}
 }
-function stuurMsg(a,b,bad){const e=document.getElementById('stmsg');if(e){e.className='stmsg'+(bad?' bad':'');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`}}
+function stuurMsg(a,b,bad){const e=document.getElementById('stmsg');if(e){e.className='stmsg'+(bad?' bad':'')+(a?'':' off');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`;clearTimeout(S.msgT);if(bad)S.msgT=setTimeout(()=>{e.className='stmsg off'},2200)}}
 function stuurPlay(){
+  if(S.played){const w=document.querySelector('.stplay');if(w)w.style.setProperty('--me',S.c);return}S.played=1;F.phone=true;
   {const a=scrAngle();S.base=innerWidth>innerHeight&&(a===90||a===270)?a:90;S.fixed=true}
-  stuurScreen(`<div class="stplay ${S.seen?'tilt':''}" style="--me:${S.c}"><div class="stname">${esc(S.n)}<span class="zat"><i id="stz" style="width:0"></i></span></div><div id="stmsg" class="stmsg"></div>
+  stuurScreen(`<div class="stplay ${S.seen?'tilt':''}" style="--me:${S.c}"><div class="stview" id="stview"></div><div class="sttop"><span id="sthud">${esc(S.n)}</span><span class="zat"><i id="stz" style="width:0"></i></span><span class="stbar"><i id="stprog"></i></span></div><div id="stmsg" class="stmsg"></div>
    <svg id="stwheel" viewBox="-100 -100 200 200" aria-hidden="true"><circle r="86" fill="none" stroke="${S.c}" stroke-width="16"/><path d="M-82 0H82M0 0V82" stroke="${S.c}" stroke-width="12"/><circle r="20" fill="${S.c}"/></svg>
    <div class="stbtns"><button id="stl" aria-label="Links">Links</button><button id="str" aria-label="Rechts">Rechts</button></div></div>`);
   const hold=(id,k)=>{const b=document.getElementById(id);const d=e=>{e.preventDefault();S[k]=1;b.classList.add('on')},u=e=>{S[k]=0;b.classList.remove('on')};b.addEventListener('pointerdown',d);['pointerup','pointercancel','pointerleave'].forEach(v=>b.addEventListener(v,u));b.addEventListener('contextmenu',e=>e.preventDefault())};
   hold('stl','left');hold('str','right');
+  document.getElementById('stview').appendChild(document.getElementById('fgl'));f3Load();
   stuurFix();clearInterval(S.timer);
   S.timer=setInterval(()=>{
     const btn=S.right-S.left, x=btn||S.tilt;
-    const w=document.getElementById('stwheel');if(w)w.style.transform=`rotate(${x*80}deg)`;
+    const w=document.getElementById('stwheel');if(w&&t3state!=='ready')w.style.transform=`rotate(${x*80}deg)`;
     if(S.conn&&S.conn.open)try{S.conn.send({s:[+x.toFixed(2)]})}catch(e){}
   },40);
 }
@@ -1747,7 +1785,7 @@ function stuurFix(){
   const vw=innerWidth,vh=innerHeight,a=scrAngle(),land=vw>vh;
   const cur=land?(a===90||a===270?a:S.base):(a===0||a===180?a:0);
   const r=((S.base-cur+540)%360)-180,swap=Math.abs(r)===90,W=swap?vh:vw,H=swap?vw:vh;
-  Object.assign(el.style,{inset:'auto',width:W+'px',height:H+'px',left:(vw-W)/2+'px',top:(vh-H)/2+'px',transform:r?`rotate(${r}deg)`:'none'});
+  Object.assign(el.style,{inset:'auto',width:W+'px',height:H+'px',left:(vw-W)/2+'px',top:(vh-H)/2+'px',transform:r?`rotate(${r}deg)`:'none'});S.W=W;S.H=H;f3Size();
 }
 addEventListener('resize',stuurFix);addEventListener('orientationchange',()=>{stuurFix();setTimeout(stuurFix,120);setTimeout(stuurFix,400)});
 addEventListener('deviceorientation',e=>{
