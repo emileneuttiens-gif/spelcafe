@@ -1311,11 +1311,23 @@ function fNet(){
   if(F.net)return;F.net=true;
   const ok=/github\.io$/.test(location.hostname)||window.__fietsTest;
   if(!ok||!window.Peer){F.status='Dit scherm kan geen gsm koppelen. Open de GitHub-link van Spelcafé, of speel met de toetsen.';F.offline=true;return}
-  F.status='Tafel wordt klaargezet.';
+  fPeer();
+  setInterval(()=>{const q=F.peer;if(!q)return;if(q.destroyed)fPeer();else if(q.disconnected)try{q.reconnect()}catch(e){}},4000);
+}
+function fPeer(){
+  if(F.peer&&!F.peer.destroyed)try{F.peer.destroy()}catch(e){}
+  F.status='Tafel wordt klaargezet.';fPanel();
   const peer=new Peer('spelcafe-fiets-'+F.code);F.peer=peer;
-  peer.on('open',()=>{F.status='Scan de code met je gsm.';fPanel()});
-  peer.on('disconnected',()=>{setTimeout(()=>{if(!peer.destroyed&&peer.disconnected)try{peer.reconnect()}catch(e){}},800)});
-  peer.on('error',e=>{F.status='De verbinding lukte niet ('+(e.type||'fout')+'). Herlaad de pagina of speel met de toetsen.';fPanel()});
+  peer.on('open',()=>{F.status='Klaar: scan de code met je gsm.';fPanel()});
+  peer.on('disconnected',()=>{F.status='Verbinding met de server even weg, wordt hersteld.';fPanel()});
+  peer.on('error',e=>{
+    if(peer!==F.peer)return;
+    if(e.type==='peer-unavailable')return;
+    if(e.type==='unavailable-id'){F.code=Math.random().toString(36).replace(/[^a-z]/g,'').slice(0,4).padEnd(4,'x');F.status='Nieuwe code aangemaakt.';setTimeout(fPeer,300);fPanel();return}
+    F.status='Server niet bereikt ('+(e.type||'fout')+'). Nieuwe poging bezig.';fPanel();
+    if(!peer.destroyed&&peer.disconnected)return;
+    setTimeout(()=>{if(peer===F.peer&&!peer.open)fPeer()},3000);
+  });
   peer.on('connection',conn=>{
     conn.on('data',m=>fMsg(conn,m));
     conn.on('close',()=>{const p=F.players.find(x=>x.conn===conn);if(p){p.gone=true;p.in=0;if(F.phase==='lobby')F.players=F.players.filter(x=>x!==p);fPanel()}});
@@ -1714,25 +1726,32 @@ function stuurJoin(code){
   document.getElementById('stgo').addEventListener('click',async()=>{
     const nm=document.getElementById('stnm').value.trim()||'Fietser';
     try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){const r=await DeviceOrientationEvent.requestPermission();S.tiltOk=r==='granted'}else S.tiltOk='DeviceOrientationEvent' in window}catch(e){S.tiltOk=false}
-    try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}
-    try{await document.documentElement.requestFullscreen();await screen.orientation.lock('landscape-primary')}catch(e){}
+    if(navigator.wakeLock)navigator.wakeLock.request('screen').then(l=>{S.lock=l}).catch(()=>{});
+    {const fs=document.documentElement.requestFullscreen;if(fs)try{fs.call(document.documentElement).then(()=>screen.orientation.lock('landscape-primary')).catch(()=>{})}catch(e){}}
     stuurConnect(code,nm);
   });
 }
-function stuurConnect(code,nm){
-  stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel...</p></div>`);
-  if(!window.Peer)return stuurFail('De verbinding kon niet laden. Controleer je internet.');
-  const peer=new Peer();
-  const fail=setTimeout(()=>stuurFail('Geen verbinding met de tafel. Probeer hetzelfde wifi als het scherm, en scan opnieuw.'),15000);
-  peer.on('error',e=>{clearTimeout(fail);stuurFail(e.type==='peer-unavailable'?'Die tafel bestaat niet meer. Scan de code op het scherm opnieuw.':'De verbinding viel weg. Scan de code opnieuw.')});
+function stuurStep(t){const e=document.getElementById('ststep');if(e)e.textContent=t}
+function stuurConnect(code,nm,tries=0){
+  stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel...</p><p class="small" id="ststep">Server zoeken${tries?' (poging '+(tries+1)+')':''}</p></div>`);
+  if(!window.Peer)return stuurFail('De verbinding kon niet laden. Controleer je internet.','peerjs-niet-geladen');
+  const peer=new Peer();let done=false;
+  const again=(why)=>{if(done)return;done=true;clearTimeout(fail);try{peer.destroy()}catch(e){}
+    if(tries<3)setTimeout(()=>stuurConnect(code,nm,tries+1),1500);
+    else stuurFail(why==='peer-unavailable'?'De tafel met code '+code.toUpperCase()+' is niet gevonden. Staat de wachtruimte open op het grote scherm? Scan dan de code die daar nu staat.':'Geen verbinding met de tafel. Probeer hetzelfde wifi als het grote scherm.',why)};
+  const fail=setTimeout(()=>again('timeout-'+(S.stage||'server')),12000);
+  S.stage='server';
+  peer.on('error',e=>again(e.type||'onbekend'));
   peer.on('open',()=>{
+    S.stage='gsm-naar-tafel';stuurStep('Server gevonden, tafel zoeken');
     const conn=peer.connect('spelcafe-fiets-'+code,{serialization:'json'});S.conn=conn;
-    conn.on('open',()=>{clearTimeout(fail);conn.send({j:nm})});
-    conn.on('data',stuurData);
-    conn.on('close',()=>stuurFail('De tafel is gesloten.'));
+    conn.on('open',()=>{S.stage='aanmelden';stuurStep('Tafel gevonden, aanmelden');conn.send({j:nm})});
+    conn.on('data',m=>{if(!done){done=true;clearTimeout(fail)}stuurData(m)});
+    conn.on('error',e=>again('verbinding-'+(e.type||'fout')));
+    conn.on('close',()=>{if(done)stuurFail('De verbinding met de tafel is verbroken.','gesloten');else again('gesloten')});
   });
 }
-function stuurFail(t){clearInterval(S.timer);S.fixed=false;document.getElementById('stuur').removeAttribute('style');stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p><button class="btn" id="stretry">Opnieuw verbinden</button></div>`);document.getElementById('stretry').addEventListener('click',()=>location.reload())}
+function stuurFail(t,code){clearInterval(S.timer);cancelAnimationFrame(S.raf);S.fixed=false;S.played=0;document.getElementById('stuur').removeAttribute('style');stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p>${code?`<p class="small">Foutcode: ${esc(code)}</p>`:''}<button class="btn" id="stretry">Opnieuw verbinden</button></div>`);document.getElementById('stretry').addEventListener('click',()=>location.reload())}
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.lock)try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}});
 function stuurData(m){
   if(m.full)return stuurFail(m.full);
