@@ -188,31 +188,36 @@ button.tile:hover{border-color:var(--taxi)}
 .st label{font:600 14px/1 var(--f-label);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .stlogo{font:400 30px/1.05 var(--f-sign);color:var(--taxi)}
 .stline{font-size:18px}
-.stplay{height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:max(14px,env(safe-area-inset-top,0px)) 14px max(14px,env(safe-area-inset-bottom,0px))}
-.stname{font:400 20px/1.1 var(--f-sign);color:var(--me)}
-.stmsg{min-height:64px;display:grid;align-content:center;gap:2px;text-align:center;border-radius:8px;background:var(--dusk-2);padding:8px}
-.stmsg b{font-size:18px}.stmsg span{font-size:15px;color:var(--muted)}
-.stmsg.bad{background:var(--stop)}.stmsg.bad span{color:#fff;font-weight:700;font-size:20px}
-#stwheel{width:100%;height:100%;min-height:0}
-.stbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tilt .stbtns{display:none}
-.stbtns button{border:0;border-radius:10px;height:96px;background:var(--dusk-3);color:var(--ink);font:700 19px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;touch-action:none}
-.stplay{position:relative;width:100%;height:100%;overflow:hidden;display:block;padding:0;background:#2b2a5a}
-.stview{position:absolute;inset:0}
-.stview #fgl{width:100%;height:100%;aspect-ratio:auto;border-radius:0;display:block}
-.sttop{position:absolute;z-index:3;left:max(10px,env(safe-area-inset-left,0px));top:8px;right:max(10px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:auto minmax(60px,110px) minmax(0,1fr);gap:10px;align-items:center;pointer-events:none}
-#sthud{font:400 15px/1 var(--f-sign);color:var(--taxi);background:rgba(20,18,44,.8);padding:6px 9px;border-radius:5px;white-space:nowrap}
-.stbar{height:7px;background:rgba(20,18,44,.75);border-radius:4px;overflow:hidden}
-.stbar i{display:block;height:100%;width:0;background:var(--taxi)}
-.stmsg{position:absolute;z-index:3;left:50%;top:50%;transform:translate(-50%,-50%);max-width:80%;min-height:0;padding:10px 16px;text-align:center;background:rgba(20,18,44,.85);border-radius:8px;display:grid;gap:2px}
+.stplay{--track:#2c2858;position:relative;width:100%;height:100%;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:0 6px;padding:8px max(12px,env(safe-area-inset-left,0px)) 8px max(12px,env(safe-area-inset-right,0px));background:radial-gradient(circle at 50% 56%,#2b2760 0,var(--dusk) 62%)}
+.sttop{grid-column:1/-1;display:grid;grid-template-columns:auto auto minmax(40px,1fr) auto;align-items:center;gap:10px;height:40px}
+.stme{display:flex;align-items:center;gap:7px;font:400 15px/1 var(--f-sign);color:var(--me);white-space:nowrap}
+.stme i{width:14px;height:14px;border-radius:4px;background:var(--me)}
+#ststreet{font:600 15px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;max-width:40vw}
+.stbar{height:6px;background:var(--track);border-radius:3px;overflow:hidden}
+.stbar i{display:block;height:100%;width:0;background:var(--me);transition:width .8s linear}
+#stset{border:1px solid var(--line);background:transparent;border-radius:8px;height:40px;padding:0 12px;font:700 14px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase}
+.stside{position:relative;border:0;border-radius:16px;background:var(--track);display:grid;place-items:center;align-content:center;gap:6px;color:var(--muted);font:700 17px/1 var(--f-label);letter-spacing:.06em;text-transform:uppercase;touch-action:none;min-width:0}
+.stside svg{width:clamp(44px,12vmin,80px);height:auto;color:var(--me);opacity:.28;will-change:opacity}
+.stside.on{outline:3px solid var(--me);background:var(--dusk-3)}
+.tilt .stside{background:transparent;pointer-events:none}
+.tilt .stside span{display:none}
+.stcentre{position:relative;height:100%;aspect-ratio:1;min-height:0;max-height:100%;border:0;background:transparent;padding:0;touch-action:manipulation}
+#stwheelbase,#stwheel{position:absolute;inset:0;width:100%;height:100%}
+#stwheel{will-change:transform}
+.stcentre.lvl #sthub{stroke:#fff}
+.stmsg{position:absolute;z-index:4;left:50%;bottom:12px;transform:translateX(-50%);max-width:86%;padding:9px 16px;text-align:center;background:rgba(14,11,38,.9);border-radius:10px;display:grid;gap:2px;pointer-events:none;white-space:nowrap}
 .stmsg.off{display:none}
-.stmsg b{font-size:17px}.stmsg span{font-size:14px;color:var(--muted)}
-#stwheel{position:absolute;inset:18% 30%;width:40%;height:64%}
-.stbtns{display:contents}
-.stbtns button{position:absolute;z-index:2;top:0;bottom:0;width:32%;height:auto;min-height:0;border-radius:0;background:rgba(53,47,107,.28)}
-#stl{left:0}#str{right:0}
-.tilt .stbtns button{display:none}
-.stbtns .on{outline:4px solid var(--ink)}
+.stmsg b{font-size:16px}.stmsg span{font-size:14px;color:var(--muted)}
+.stmsg.bad{inset:0;left:0;bottom:0;transform:none;max-width:none;border-radius:0;background:var(--stop);place-content:center;gap:8px}
+.stmsg.bad b{font:400 26px/1.1 var(--f-sign)}.stmsg.bad span{color:#fff;font-weight:700;font-size:21px}
+.stsheet{position:absolute;z-index:6;inset:0;display:grid;place-items:center;background:rgba(14,11,38,.92);padding:10px}
+.stpanel{width:min(100%,520px);display:grid;gap:12px}
+.strow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:center;font:700 15px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.stchips{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.stchips button{height:46px;border:1px solid var(--line);border-radius:8px;background:transparent;font:700 15px/1 var(--f-label);letter-spacing:.04em;text-transform:uppercase;min-width:0}
+.stchips button[aria-pressed="true"]{background:var(--me);border-color:var(--me);color:#14122c}
+.stchips button[disabled]{opacity:.35}
+#stclose{height:48px}
 .busmain{min-width:0;display:grid;gap:14px}
 #busscene{display:block;width:100%;height:auto;border-radius:8px;background:#3a2f7a}
 .busgo{transition:transform .7s ease-in-out}
@@ -1336,8 +1341,8 @@ setInterval(()=>{
   if(F.phase==='lobby'){const n=F.players.length;F.players=F.players.filter(p=>!p.conn||performance.now()-(p.seen||0)<4000);if(F.players.length!==n&&location.hash==='#dronken-fietsen'){F.players.forEach((p,i)=>{p.c=FCOL[i];fSend(p,{ok:1,c:p.c,n:p.nm})});fPanel();fDraw()}}
   else F.players.forEach(p=>{if(p.conn&&performance.now()-(p.seen||0)>2500&&!p.gone){p.gone=true;p.in=0;fHud()}});
 },1000);
-const fHit=it=>{it.hit=1;F.players.forEach(p=>fSend(p,{hit:it.i}))};
-const fGoMsg=i=>({go:1,me:i,pl:F.players.map(p=>[p.key,p.nm,p.c,p.x]),it:F.items.map(x=>[x.k,x.s,x.o,x.v||0,x.hit?1:0])});
+const fHit=it=>{it.hit=1};
+const fGoMsg=i=>({go:1});
 function fItems(){
   const a=[];if(EMPTY)return a;let s=1800;
   const types=['paal','put','fiets','duif','tram','mens'];
@@ -1408,7 +1413,7 @@ function fEnd(){
 function fAdapt(ms){
   if(!T3||t3state!=='ready')return;
   F.fms=F.fms?F.fms*.97+ms*.03:ms;F.fcn=(F.fcn||0)+1;if(F.fcn<75)return;F.fcn=0;
-  const mx=Math.min(devicePixelRatio||1,F.phone?1.25:1.5);T3.pr=T3.pr||mx;
+  const mx=Math.min(devicePixelRatio||1,1.5);T3.pr=T3.pr||mx;
   if(F.fms>26&&T3.pr>.5){T3.pr=Math.max(.5,T3.pr-.2);T3.R3.setPixelRatio(T3.pr);f3Size()}
   else if(F.fms<14&&T3.pr<mx){T3.pr=Math.min(mx,T3.pr+.1);T3.R3.setPixelRatio(T3.pr);f3Size()}
 }
@@ -1419,7 +1424,7 @@ function fLoop(now){
   fAdapt(raw*1000);
   let left=dt;while(left>0&&F.phase==='play'){const st=Math.min(left,1/30);fStep(st);left-=st}
   fDraw();
-  F.tx=(F.tx||0)+dt;if(F.tx>.06&&F.phase==='play'){F.tx=0;const w=[Math.round(F.cam),Math.round(F.speed),+F.t.toFixed(2),F.players.map(p=>[Math.round(p.x),Math.round(p.py),Math.round(p.vx),p.stun>0?1:0,p.safe>0?1:0,Math.round(p.zat*100)])];F.players.forEach(p=>fSend(p,{w}))}
+  F.tx=(F.tx||0)+dt;if(F.tx>.8&&F.phase==='play'){F.tx=0;const st=[sectionAt(F.cam+300)[1],Math.min(100,Math.round(F.cam/TOTAL*100))];F.players.forEach(p=>fSend(p,{st}))}
   F.hud=(F.hud||0)+dt;if(F.hud>.3){F.hud=0;fHud()}
   if(F.phase==='play')F.raf=requestAnimationFrame(fLoop);
 }
@@ -1529,11 +1534,11 @@ let T3=null,t3state='idle';
 function f3Load(){
   if(t3state!=='idle')return;t3state='loading';
   const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-  sc.onload=async()=>{try{await document.fonts.ready;f3Build();t3state='ready';document.getElementById('fgl').hidden=false;if(F.phone){const w=document.getElementById('stwheel');if(w)w.style.display='none';T3.pr=Math.min(devicePixelRatio||1,1.25);T3.R3.setPixelRatio(T3.pr)}else{const hc=document.getElementById('fcv');hc.width=1920;hc.height=1080;document.getElementById('ffs').hidden=false}f3Size()}catch(e){t3state='failed'}};
+  sc.onload=async()=>{try{await document.fonts.ready;f3Build();t3state='ready';document.getElementById('fgl').hidden=false;const hc=document.getElementById('fcv');hc.width=1920;hc.height=1080;document.getElementById('ffs').hidden=false;f3Size()}catch(e){t3state='failed'}};
   sc.onerror=()=>{t3state='failed'};document.head.appendChild(sc);
 }
 function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=8;return t}
-function f3Size(){if(!T3)return;if(F.phone){const w=S.W||innerWidth,h=S.H||innerHeight;T3.R3.setSize(w,h,false);T3.cam.aspect=w/h;T3.cam.updateProjectionMatrix();fDraw();return}const el=document.getElementById('fgl'),w=Math.min(el.clientWidth||FW,1920);if(!w)return;T3.R3.setSize(w,Math.round(w*9/16),false);fDraw()}
+function f3Size(){if(!T3)return;const el=document.getElementById('fgl'),w=Math.min(el.clientWidth||FW,1920);if(!w)return;T3.R3.setSize(w,Math.round(w*9/16),false);fDraw()}
 addEventListener('resize',f3Size);document.addEventListener('fullscreenchange',f3Size);
 function signMesh(text,w,h,bg,fg,font){
   const tx=canvasTex(512,Math.round(512*h/w),(c,W,H)=>{c.fillStyle=bg;c.fillRect(0,0,W,H);c.fillStyle=fg;c.font=(font||Math.round(H*.56))+'px Bungee,Impact,sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(text,W/2,H/2+4,W-24)});
@@ -1544,7 +1549,7 @@ function box(w,h,d,col,x,y,z,g){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h
 function cyl(a,b,h,col,x,y,z,g,seg=12){const m=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,seg),std(col));m.position.set(x,y,z);if(g)g.add(m);return m}
 function f3Build(){
   const gl=document.getElementById('fgl');
-  const R3=new THREE.WebGLRenderer({canvas:gl,antialias:!F.phone,preserveDrawingBuffer:!F.phone,powerPreference:'high-performance'});
+  const R3=new THREE.WebGLRenderer({canvas:gl,antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
   R3.setPixelRatio(Math.min(devicePixelRatio||1,1.5));R3.setSize(FW,FH,false);
   const sc=new THREE.Scene();sc.background=new THREE.Color('#e0784f');sc.fog=new THREE.Fog('#b0607a',5200,18500);
   sc.add(new THREE.HemisphereLight('#ffd9b0','#3a2f7a',.82));
@@ -1671,7 +1676,7 @@ function f3Render(){
     r.body.position.y=40+Math.abs(Math.sin(pedal))*1.4;g.userData.wheels.forEach(w=>{w.rotation.x=-s/19});
     g.visible=!(p.safe>0&&p.stun<=0&&Math.floor(F.t*10)%2);
   });
-  const mine=F.phone&&F.players[F.me],avg=mine?mine.x*2.6:F.players.length?sumx/F.players.length:0,cs=s0+FH-(mine?mine.py:430)-340,cf=fr(cs),lf=fr(cs+520);
+  const avg=F.players.length?sumx/F.players.length:0,cs=s0+FH-430-340,cf=fr(cs),lf=fr(cs+520);
   const tgt=head(lf),dtc=Math.max(0,F.t-(T3.lt||0));T3.lt=F.t;T3.dtc=dtc||.016;
   if(T3.yaw==null||dtc>.2)T3.yaw=tgt;else T3.yaw+=Math.atan2(Math.sin(tgt-T3.yaw),Math.cos(tgt-T3.yaw))*Math.min(1,dtc*7);
   const wob=calm?0:top*Math.sin(F.t*1.3)*46,tox=avg*.3+wob;T3.ox=T3.ox==null||dtc>.2?tox:T3.ox+(tox-T3.ox)*Math.min(1,dtc*5);
@@ -1685,7 +1690,7 @@ function f3Render(){
   cam.fov=66+(calm?0:Math.sin(F.t*1.1)*5*top)+((F.speed||0)/RIDE)*4;cam.updateProjectionMatrix();
   sky.position.copy(cam.position);
   R3.render(sc,cam);
-  if(F.phone)return;F.hudC=(F.hudC||0)+1;if(!F.floats.length&&F.phase==='play'&&!F.hadF&&F.hudC%8)return;F.hadF=F.floats.length>0;
+  F.hudC=(F.hudC||0)+1;if(!F.floats.length&&F.phase==='play'&&!F.hadF&&F.hudC%8)return;F.hadF=F.floats.length>0;
   const c=document.getElementById('fcv').getContext('2d');c.setTransform(2,0,0,2,0,0);c.clearRect(0,0,FW,FH);
   c.textAlign='center';c.font='700 24px "Barlow Condensed",sans-serif';
   F.floats.forEach(f=>{v.set(f.wx,120+(f.h||0),f.wz).project(cam);const x=(v.x+1)/2*FW,y=(1-v.y)/2*FH;c.globalAlpha=Math.min(1,f.a);c.lineWidth=5;c.strokeStyle='#14122c';c.strokeText(f.t,x,y);c.fillStyle=f.col;c.fillText(f.t,x,y)});c.globalAlpha=1;
@@ -1701,37 +1706,11 @@ function fDraw(){
   if(t3state==='ready')f3Render();else fDraw2D();
 }
 
-/* ---------- race op de gsm: zelfde 3D-rit, met live posities van het grote scherm ---------- */
-function pStart(m){
-  F.phone=true;F.me=m.me;F.items=(m.it||[]).map((a,i)=>({k:a[0],s:a[1],o:a[2],v:a[3],hit:a[4]||0,i}));
-  F.players=m.pl.map(a=>({key:a[0],nm:a[1],c:a[2],x:a[3],tx:a[3],py:430,tpy:430,vx:0,zat:0,stun:0,safe:0}));
-  F.cam=0;F.srvCam=0;F.t=0;F.speed=0;F.phase='play';F.floats=[];F.last=performance.now();F.dts=0;
-  if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}
-  stuurHud();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(pLoop);
-}
-function pData(w){
-  F.srvCam=w[0];F.srvAt=performance.now();F.speed=w[1];F.t0=w[2];
-  w[3].forEach((a,i)=>{const p=F.players[i];if(!p)return;p.tx=a[0];p.tpy=a[1];p.vx=a[2];p.stun=a[3]?1:0;p.safe=a[4]?1:0;p.zat=a[5]/100});
-}
-function pLoop(now){
-  if(F.phase!=='play')return;
-  const raw=(now-F.last)/1000,dt=Math.min(.25,Math.max(0,raw));F.last=now;
-  F.t+=dt;F.cam+=F.speed*dt;{const tc=F.srvCam+F.speed*(.03+Math.min(.25,(now-(F.srvAt||now))/1000));if(Math.abs(tc-F.cam)>1500)F.cam=tc;else F.cam+=Math.max(-.5*F.speed*dt,(tc-F.cam)*Math.min(1,dt*3))}
-  F.players.forEach(p=>{p.x+=(p.tx-p.x)*Math.min(1,dt*14);p.py+=(p.tpy-p.py)*Math.min(1,dt*8)});
-  fAdapt(raw*1000);fDraw();stuurHud();
-  if(F.phase==='play')F.raf=requestAnimationFrame(pLoop);
-}
-function stuurHud(){
-  const e=document.getElementById('sthud');if(!e)return;
-  const n=sectionAt(F.cam+300)[1],pct=Math.min(100,Math.round(F.cam/TOTAL*100)),k=n+pct;
-  if(k===S.hudK)return;S.hudK=k;e.textContent=n;const b=document.getElementById('stprog');if(b)b.style.width=pct+'%';
-}
-
 /* ---------- gsm als stuur ---------- */
 let S={conn:null,tilt:0,boost:0,left:0,right:0,timer:0,tiltOk:false,lock:null};
 function stuurScreen(html){document.getElementById('stuur').innerHTML=html}
 function stuurJoin(code){
-  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Je ziet de race op je gsm in liggende stand: hou hem horizontaal vast en kantel om te sturen. Zet automatisch draaien van je scherm uit, dan blijft het beeld helemaal stil. Alleen voor 18+.</p></div>`);
+  stuurScreen(`<div class="st"><p class="stlogo">Dronken fietsen</p><p class="stline">Je gsm wordt het stuur.</p><label for="stnm">Jouw naam</label><input id="stnm" maxlength="12" autocomplete="off" value=""><button class="btn" id="stgo">Stap op de fiets</button><p class="small">Na het verbinden staat het stuur vast in liggende stand: hou je gsm vast als een stuur en kantel om te sturen. Zet automatisch draaien van je scherm uit, dan blijft het beeld helemaal stil. Alleen voor 18+.</p></div>`);
   document.getElementById('stgo').addEventListener('click',async()=>{
     const nm=document.getElementById('stnm').value.trim()||'Fietser';
     try{if(window.DeviceOrientationEvent&&DeviceOrientationEvent.requestPermission){const r=await DeviceOrientationEvent.requestPermission();S.tiltOk=r==='granted'}else S.tiltOk='DeviceOrientationEvent' in window}catch(e){S.tiltOk=false}
@@ -1757,31 +1736,66 @@ function stuurFail(t){clearInterval(S.timer);S.fixed=false;document.getElementBy
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.lock)try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}});
 function stuurData(m){
   if(m.full)return stuurFail(m.full);
-  if(m.ok){S.c=m.c;S.n=m.n;stuurPlay();stuurMsg('Klaar. Wacht op de start op het grote scherm.','')}
-  if(m.go){stuurMsg('','');pStart(m)}
-  if(m.w&&F.phase==='play')pData(m.w);
-  if(typeof m.hit==='number'&&F.items&&F.items[m.hit])F.items[m.hit].hit=1;
-  if(m.lobby){F.phase='lobby';F.cam=0;F.t=0;F.items=[];cancelAnimationFrame(F.raf);stuurMsg('Nieuwe rit in aanmaak.','');fDraw()}
-  if(m.fall){stuurMsg('Gevallen: '+m.fall,'Drink '+m.n+(m.n===1?' slok':' slokken'),1);try{navigator.vibrate&&navigator.vibrate([200,80,200])}catch(e){}}
-  if(typeof m.z==='number'){const e=document.getElementById('stz');if(e)e.style.width=Math.round(m.z*100)+'%'}
-  if(m.end){F.phase='end';cancelAnimationFrame(F.raf);stuurMsg('Plaats '+m.end+' aan Bar des Amis',EMPTY?'Je bent aangekomen':m.score+' punten, '+m.sips+' slokken')}
+  if(m.ok){S.c=m.c;S.n=m.n;stuurPlay();stuurMsg('Klaar voor de start','Wacht op het grote scherm')}
+  if(m.go){setStreet('Sint-Pietersplein',0);stuurMsg('Rijden!','',0,1400)}
+  if(m.st)setStreet(m.st[0],m.st[1]);
+  if(m.lobby){setStreet('Wacht op de start',0);stuurMsg('Nieuwe rit in aanmaak','Wacht op het grote scherm')}
+  if(m.fall){stuurMsg('Gevallen: '+m.fall,'Drink '+m.n+(m.n===1?' slok':' slokken'),1,2200);try{navigator.vibrate&&navigator.vibrate([200,80,200])}catch(e){}}
+  if(m.end){setStreet('Bar des Amis',100);stuurMsg('Plaats '+m.end+' aan Bar des Amis',EMPTY?'Je bent aangekomen':m.score+' punten, '+m.sips+' slokken')}
 }
-function stuurMsg(a,b,bad){const e=document.getElementById('stmsg');if(e){e.className='stmsg'+(bad?' bad':'')+(a?'':' off');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`;clearTimeout(S.msgT);if(bad)S.msgT=setTimeout(()=>{e.className='stmsg off'},2200)}}
+function setStreet(n,pct){const e=document.getElementById('ststreet');if(e&&e.textContent!==n)e.textContent=n;const b=document.getElementById('stprog');if(b)b.style.width=pct+'%'}
+function stuurMsg(a,b,bad,ms){const e=document.getElementById('stmsg');if(!e)return;e.className='stmsg'+(bad?' bad':'')+(a?'':' off');e.innerHTML=`<b>${esc(a)}</b><span>${esc(b)}</span>`;if(!b)e.lastChild.remove();clearTimeout(S.msgT);if(ms)S.msgT=setTimeout(()=>{e.className='stmsg off'},ms)}
+const SENS={rustig:36,normaal:26,snel:17};
+function stuurPrefs(){try{return Object.assign({sens:'normaal',inv:false,mode:'tilt'},JSON.parse(localStorage.getItem('stuur-inst')||'{}'))}catch(e){return{sens:'normaal',inv:false,mode:'tilt'}}}
+function stuurSave(){try{localStorage.setItem('stuur-inst',JSON.stringify(S.pref))}catch(e){}}
+const stuurMode=()=>S.pref.mode==='tilt'&&S.seen?'tilt':'knop';
+function stuurClass(){const pl=document.querySelector('.stplay');if(pl)pl.classList.toggle('tilt',stuurMode()==='tilt')}
+function stuurSheet(){
+  const sh=document.getElementById('stsheet'),P=S.pref;
+  const chips=(k,list)=>list.map(([v,l,off])=>`<button data-k="${k}" data-v="${v}" aria-pressed="${String(P[k])===String(v)}" ${off?'disabled':''}>${l}</button>`).join('');
+  sh.innerHTML=`<div class="stpanel"><div class="strow">Sturen<div class="stchips">${chips('mode',[['tilt','Kantelen',!S.seen],['knop','Knoppen']])}</div></div>
+   <div class="strow">Gevoelig<div class="stchips">${chips('sens',[['rustig','Rustig'],['normaal','Normaal'],['snel','Snel']])}</div></div>
+   <div class="strow">Richting<div class="stchips">${chips('inv',[['false','Normaal'],['true','Omgekeerd']])}</div></div>
+   <button class="btn" id="stclose">Klaar</button></div>`;
+  sh.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.k;P[k]=k==='inv'?b.dataset.v==='true':b.dataset.v;stuurSave();stuurClass();stuurSheet()}));
+  document.getElementById('stclose').addEventListener('click',()=>{sh.hidden=true});
+  sh.hidden=false;
+}
+const CHEV=d=>`<svg viewBox="0 0 60 60" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function wheelSvg(c){
+  let ticks='';for(let a=-100;a<=100;a+=20){const big=a===0,r=a*Math.PI/180,x=Math.sin(r),y=-Math.cos(r),r0=big?104:108;ticks+=`<line x1="${(x*r0).toFixed(1)}" y1="${(y*r0).toFixed(1)}" x2="${(x*116).toFixed(1)}" y2="${(y*116).toFixed(1)}" stroke="${big?'#f7f3ff':'#4c4590'}" stroke-width="${big?5:3}" stroke-linecap="round"/>`}
+  return`<svg id="stwheelbase" viewBox="-120 -120 240 240" aria-hidden="true">${ticks}</svg>
+  <svg id="stwheel" viewBox="-120 -120 240 240" aria-hidden="true">
+   <circle r="88" fill="none" stroke="#14122c" stroke-width="24"/><circle r="88" fill="none" stroke="#3a3580" stroke-width="16"/>
+   <path d="M-88 0A88 88 0 0 1 -62 -62M-62 62A88 88 0 0 1 -88 0M88 0A88 88 0 0 0 62 -62M62 62A88 88 0 0 0 88 0" fill="none" stroke="${c}" stroke-width="16" stroke-linecap="round"/>
+   <path d="M-82 -6H-26L-14 22H14L26 -6H82M-13 24L-8 80H8L13 24" fill="none" stroke="#14122c" stroke-width="22" stroke-linejoin="round"/>
+   <path d="M-82 -6H-26L-14 22H14L26 -6H82M-13 24L-8 80H8L13 24" fill="none" stroke="#3a3580" stroke-width="13" stroke-linejoin="round"/>
+   <circle id="sthub" r="29" fill="#14122c" stroke="${c}" stroke-width="5"/><rect x="-5" y="-108" width="10" height="24" rx="3" fill="#f7f3ff"/>
+  </svg>`;
+}
+function stuurTick(){
+  if(!S.fixed)return;
+  const m=stuurMode(),t=m==='tilt'?S.tilt:S.right-S.left;S.x=(S.x||0)+(t-(S.x||0))*(m==='tilt'?.55:.24);
+  if(Math.abs(S.x-(S.xd||0))>.002){S.xd=S.x;const w=document.getElementById('stwheel');if(w)w.style.transform=`rotate(${S.x*100}deg)`;
+    const l=document.querySelector('#stl svg'),r=document.querySelector('#str svg');if(l)l.style.opacity=.28+Math.max(0,-S.x)*.72;if(r)r.style.opacity=.28+Math.max(0,S.x)*.72}
+  S.raf=requestAnimationFrame(stuurTick);
+}
 function stuurPlay(){
-  if(S.played){const w=document.querySelector('.stplay');if(w)w.style.setProperty('--me',S.c);return}S.played=1;F.phone=true;
+  if(S.played){const w=document.querySelector('.stplay');if(w)w.style.setProperty('--me',S.c);return}S.played=1;S.pref=stuurPrefs();
   {const a=scrAngle();S.base=innerWidth>innerHeight&&(a===90||a===270)?a:90;S.fixed=true}
-  stuurScreen(`<div class="stplay ${S.seen?'tilt':''}" style="--me:${S.c}"><div class="stview" id="stview"></div><div class="sttop"><span id="sthud">${esc(S.n)}</span><span class="zat"><i id="stz" style="width:0"></i></span><span class="stbar"><i id="stprog"></i></span></div><div id="stmsg" class="stmsg"></div>
-   <svg id="stwheel" viewBox="-100 -100 200 200" aria-hidden="true"><circle r="86" fill="none" stroke="${S.c}" stroke-width="16"/><path d="M-82 0H82M0 0V82" stroke="${S.c}" stroke-width="12"/><circle r="20" fill="${S.c}"/></svg>
-   <div class="stbtns"><button id="stl" aria-label="Links">Links</button><button id="str" aria-label="Rechts">Rechts</button></div></div>`);
-  const hold=(id,k)=>{const b=document.getElementById(id);const d=e=>{e.preventDefault();S[k]=1;b.classList.add('on')},u=e=>{S[k]=0;b.classList.remove('on')};b.addEventListener('pointerdown',d);['pointerup','pointercancel','pointerleave'].forEach(v=>b.addEventListener(v,u));b.addEventListener('contextmenu',e=>e.preventDefault())};
+  stuurScreen(`<div class="stplay" style="--me:${S.c}">
+   <div class="sttop"><span class="stme"><i></i>${esc(S.n)}</span><span id="ststreet">Wacht op de start</span><span class="stbar"><i id="stprog"></i></span><button id="stset">Instellingen</button></div>
+   <button id="stl" class="stside" aria-label="Links">${CHEV('M38 12 18 30 38 48')}<span>Links</span></button>
+   <button class="stcentre" id="stcentre" aria-label="Stuur centreren">${wheelSvg(S.c)}</button>
+   <button id="str" class="stside" aria-label="Rechts">${CHEV('M22 12 42 30 22 48')}<span>Rechts</span></button>
+   <div id="stmsg" class="stmsg off"></div><div id="stsheet" class="stsheet" hidden></div></div>`);
+  stuurClass();
+  const hold=(id,k)=>{const b=document.getElementById(id);const d=e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(x){}S[k]=1;b.classList.add('on');try{navigator.vibrate&&navigator.vibrate(8)}catch(x){}},u=()=>{S[k]=0;b.classList.remove('on')};b.addEventListener('pointerdown',d);['pointerup','pointercancel','lostpointercapture'].forEach(v=>b.addEventListener(v,u));b.addEventListener('contextmenu',e=>e.preventDefault())};
   hold('stl','left');hold('str','right');
-  document.getElementById('stview').appendChild(document.getElementById('fgl'));f3Load();
-  stuurFix();clearInterval(S.timer);
-  S.timer=setInterval(()=>{
-    const btn=S.right-S.left, x=btn||S.tilt;
-    const w=document.getElementById('stwheel');if(w&&t3state!=='ready')w.style.transform=`rotate(${x*80}deg)`;
-    if(S.conn&&S.conn.open)try{S.conn.send({s:[+x.toFixed(2)]})}catch(e){}
-  },40);
+  document.getElementById('stset').addEventListener('click',stuurSheet);
+  document.getElementById('stcentre').addEventListener('click',()=>{S.zero=S.rawDeg||0;stuurMsg('Stuur gecentreerd','',0,900);try{navigator.vibrate&&navigator.vibrate(15)}catch(x){}});
+  stuurFix();clearInterval(S.timer);cancelAnimationFrame(S.raf);S.raf=requestAnimationFrame(stuurTick);
+  S.timer=setInterval(()=>{if(S.conn&&S.conn.open)try{S.conn.send({s:[+(S.x||0).toFixed(3)]})}catch(e){}},33);
 }
 function scrAngle(){const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0);return((a%360)+360)%360}
 function stuurFix(){
@@ -1794,7 +1808,7 @@ function stuurFix(){
 addEventListener('resize',stuurFix);addEventListener('orientationchange',()=>{stuurFix();setTimeout(stuurFix,120);setTimeout(stuurFix,400)});
 addEventListener('deviceorientation',e=>{
   if(e.gamma==null||e.beta==null)return;
-  if(!S.seen){S.seen=1;const pl=document.querySelector('.stplay');if(pl)pl.classList.add('tilt')}
+  if(!S.seen){S.seen=1;stuurClass()}
   const b=e.beta*Math.PI/180,g=e.gamma*Math.PI/180,gx=Math.sin(g)*Math.cos(b),gy=-Math.sin(b);
   const mag=Math.hypot(gx,gy);if(mag<.3)return;
   if(S.base==null||!S.fixed)return;
@@ -1802,8 +1816,9 @@ addEventListener('deviceorientation',e=>{
   let phi=S.base===90?Math.atan2(-gy,-gx):Math.atan2(gy,gx);
   if(Math.abs(phi)>2.6){S.flip=(S.flip||0)+1;if(S.flip>45){S.base=S.base===90?270:90;S.flip=0;stuurFix()}return}
   S.flip=0;
-  const deg=phi*180/Math.PI,d=Math.abs(deg)<3?0:deg-Math.sign(deg)*3,t=Math.max(-1,Math.min(1,d/27));
-  S.tilt=(S.tilt||0)+(t-(S.tilt||0))*.45;
+  S.rawDeg=phi*180/Math.PI;
+  const deg=(S.rawDeg-(S.zero||0))*(S.pref&&S.pref.inv?-1:1),r=(S.pref?SENS[S.pref.sens]:26)||26,a=Math.abs(deg),d=a<2?0:a-2,n=Math.min(1,d/r),t=Math.sign(deg)*(n*.55+n*n*.45);
+  S.tilt=t;
 });
 
 /* ---------- keuzemenu ---------- */
