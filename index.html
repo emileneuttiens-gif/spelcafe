@@ -1321,11 +1321,14 @@ function fMsg(conn,m){
   if(typeof m.j==='string'){
     let p=F.players.find(x=>x.conn===conn);
     const name=m.j.trim().slice(0,12)||'Fietser';
+    conn.nm=name;
+    if(!p&&F.phase==='play'){const g=F.players.find(x=>x.gone&&x.nm===name);if(g){g.conn=conn;g.gone=false;g.seen=performance.now();conn.send({ok:1,c:g.c,n:g.nm});conn.send(fGoMsg(F.players.indexOf(g)));fHud();return}}
     if(!p){if(F.phase!=='lobby'){conn.send({full:'De rit is al bezig. Wacht op de volgende.'});return}
       p=fAdd(conn.peer,name,conn);if(!p){conn.send({full:'De fietsenstalling is vol: maximum 4 fietsers.'});return}}
     p.seen=performance.now();conn.send({ok:1,c:p.c,n:p.nm});fPanel();fDraw();return;
   }
-  const p=F.players.find(x=>x.conn===conn);
+  let p=F.players.find(x=>x.conn===conn);
+  if(!p&&Array.isArray(m.s)&&F.phase==='lobby'&&conn.nm&&conn.open){p=fAdd(conn.peer,conn.nm,conn);if(p){p.seen=performance.now();conn.send({ok:1,c:p.c,n:p.nm});fPanel();fDraw()}}
   if(p)p.seen=performance.now(),p.gone=false;
   if(p&&Array.isArray(m.s)){p.in=Math.max(-1,Math.min(1,+m.s[0]||0))}
 }
@@ -1334,6 +1337,7 @@ setInterval(()=>{
   else F.players.forEach(p=>{if(p.conn&&performance.now()-(p.seen||0)>2500&&!p.gone){p.gone=true;p.in=0;fHud()}});
 },1000);
 const fHit=it=>{it.hit=1;F.players.forEach(p=>fSend(p,{hit:it.i}))};
+const fGoMsg=i=>({go:1,me:i,pl:F.players.map(p=>[p.key,p.nm,p.c,p.x]),it:F.items.map(x=>[x.k,x.s,x.o,x.v||0,x.hit?1:0])});
 function fItems(){
   const a=[];if(EMPTY)return a;let s=1800;
   const types=['paal','put','fiets','duif','tram','mens'];
@@ -1353,7 +1357,7 @@ function fStart(){
   F.items=fItems();F.cam=0;F.t=0;F.vel=0;F.speed=0;F.floats=[];F.phase='play';
   const n=F.players.length;
   F.players.forEach((p,i)=>{Object.assign(p,{x:(i-(n-1)/2)*95,vx:0,py:430,zat:0,stun:0,safe:0,pints:0,falls:0,sips:0,fine:0,done:false})});
-  {const pl=F.players.map(p=>[p.key,p.nm,p.c,p.x]),it=F.items.map(x=>[x.k,x.s,x.o,x.v||0]);F.players.forEach((p,i)=>fSend(p,{go:1,me:i,pl,it}))}
+  F.players.forEach((p,i)=>fSend(p,fGoMsg(i)));
   F.last=performance.now();F.dts=0;if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}fPanel();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(fLoop);
 }
 function fFloat(p,t,col){const s=F.cam+FH-p.py,f=fr(s);F.floats.push({x:roadX(s)+p.x,y:p.py-40,wx:f.x-f.tz*p.x,wz:f.z+f.tx*p.x,h:0,t,col,a:1.4})}
@@ -1699,20 +1703,20 @@ function fDraw(){
 
 /* ---------- race op de gsm: zelfde 3D-rit, met live posities van het grote scherm ---------- */
 function pStart(m){
-  F.phone=true;F.me=m.me;F.items=(m.it||[]).map((a,i)=>({k:a[0],s:a[1],o:a[2],v:a[3],i}));
+  F.phone=true;F.me=m.me;F.items=(m.it||[]).map((a,i)=>({k:a[0],s:a[1],o:a[2],v:a[3],hit:a[4]||0,i}));
   F.players=m.pl.map(a=>({key:a[0],nm:a[1],c:a[2],x:a[3],tx:a[3],py:430,tpy:430,vx:0,zat:0,stun:0,safe:0}));
   F.cam=0;F.srvCam=0;F.t=0;F.speed=0;F.phase='play';F.floats=[];F.last=performance.now();F.dts=0;
   if(T3){T3.yaw=T3.ox=T3.roll=null;T3.lt=0;T3.riders.forEach(r=>{r.yaw=null})}
   stuurHud();cancelAnimationFrame(F.raf);F.raf=requestAnimationFrame(pLoop);
 }
 function pData(w){
-  F.srvCam=w[0];F.speed=w[1];F.t0=w[2];
+  F.srvCam=w[0];F.srvAt=performance.now();F.speed=w[1];F.t0=w[2];
   w[3].forEach((a,i)=>{const p=F.players[i];if(!p)return;p.tx=a[0];p.tpy=a[1];p.vx=a[2];p.stun=a[3]?1:0;p.safe=a[4]?1:0;p.zat=a[5]/100});
 }
 function pLoop(now){
   if(F.phase!=='play')return;
   const raw=(now-F.last)/1000,dt=Math.min(.25,Math.max(0,raw));F.last=now;
-  F.t+=dt;F.cam+=F.speed*dt;F.cam+=(F.srvCam+F.speed*.04-F.cam)*Math.min(1,dt*3);
+  F.t+=dt;F.cam+=F.speed*dt;{const tc=F.srvCam+F.speed*(.03+Math.min(.25,(now-(F.srvAt||now))/1000));if(Math.abs(tc-F.cam)>1500)F.cam=tc;else F.cam+=Math.max(-.5*F.speed*dt,(tc-F.cam)*Math.min(1,dt*3))}
   F.players.forEach(p=>{p.x+=(p.tx-p.x)*Math.min(1,dt*14);p.py+=(p.tpy-p.py)*Math.min(1,dt*8)});
   fAdapt(raw*1000);fDraw();stuurHud();
   if(F.phase==='play')F.raf=requestAnimationFrame(pLoop);
