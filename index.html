@@ -210,6 +210,10 @@ button.tile:hover{border-color:var(--taxi)}
 .stmsg b{font-size:16px}.stmsg span{font-size:14px;color:var(--muted)}
 .stmsg.bad{inset:0;left:0;bottom:0;transform:none;max-width:none;border-radius:0;background:var(--stop);place-content:center;gap:8px}
 .stmsg.bad b{font:400 26px/1.1 var(--f-sign)}.stmsg.bad span{color:#fff;font-weight:700;font-size:21px}
+.stlog{margin:0;max-height:34vh;overflow:auto;background:var(--dusk-2);border:1px solid var(--line);border-radius:6px;padding:8px;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;user-select:text;-webkit-user-select:text;touch-action:pan-y}
+.stlog:empty{display:none}
+.stcrash{position:fixed;z-index:50;left:8px;right:8px;bottom:8px;background:var(--stop);color:#fff;font:600 13px/1.3 var(--f-body);padding:8px 10px;border-radius:8px;overflow-wrap:anywhere}
+.fnetlog{margin:0;max-height:150px;overflow:auto;font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
 .stsheet{position:absolute;z-index:6;inset:0;display:grid;place-items:center;background:rgba(14,11,38,.92);padding:10px}
 .stpanel{width:min(100%,520px);display:grid;gap:12px}
 .strow{display:grid;grid-template-columns:120px minmax(0,1fr);gap:10px;align-items:center;font:700 15px/1 var(--f-label);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -1314,14 +1318,16 @@ function fNet(){
   fPeer();
   setInterval(()=>{const q=F.peer;if(!q)return;if(q.destroyed)fPeer();else if(q.disconnected)try{q.reconnect()}catch(e){}},4000);
 }
+function flog(t){F.log=F.log||[];F.log.unshift(new Date().toLocaleTimeString('nl-BE')+' '+t);F.log.length=Math.min(F.log.length,12);const e=document.getElementById('fnetlog');if(e)e.textContent=F.log.join('\n')}
 function fPeer(){
   if(F.peer&&!F.peer.destroyed)try{F.peer.destroy()}catch(e){}
   F.status='Tafel wordt klaargezet.';fPanel();
   const peer=new Peer('spelcafe-fiets-'+F.code);F.peer=peer;
-  peer.on('open',()=>{F.status='Klaar: scan de code met je gsm.';fPanel()});
-  peer.on('disconnected',()=>{F.status='Verbinding met de server even weg, wordt hersteld.';fPanel();setTimeout(()=>{if(peer===F.peer&&!peer.destroyed&&peer.disconnected)try{peer.reconnect()}catch(e){}},800)});
+  peer.on('open',()=>{F.status='Klaar: scan de code met je gsm.';flog('op de server als tafel '+F.code.toUpperCase());fPanel()});
+  peer.on('disconnected',()=>{F.status='Verbinding met de server even weg, wordt hersteld.';flog('server: verbinding weg');fPanel();setTimeout(()=>{if(peer===F.peer&&!peer.destroyed&&peer.disconnected)try{peer.reconnect()}catch(e){}},800)});
   peer.on('error',e=>{
     if(peer!==F.peer)return;
+    flog('fout: '+(e.type||'onbekend')+' '+(e.message||''));
     if(e.type==='peer-unavailable')return;
     if(e.type==='unavailable-id'){F.code=Math.random().toString(36).replace(/[^a-z]/g,'').slice(0,4).padEnd(4,'x');F.status='Nieuwe code aangemaakt.';setTimeout(fPeer,300);fPanel();return}
     F.status='Server niet bereikt ('+(e.type||'fout')+'). Nieuwe poging bezig.';fPanel();
@@ -1329,6 +1335,8 @@ function fPeer(){
     setTimeout(()=>{if(peer===F.peer&&!peer.open)fPeer()},3000);
   });
   peer.on('connection',conn=>{
+    flog('gsm probeert te verbinden');let ice='';const w=setInterval(()=>{const pc=conn.peerConnection;if(!pc)return;const st=pc.iceConnectionState;if(st!==ice){ice=st;flog('netwerkpad gsm: '+st)}if(st==='connected'||st==='completed'||st==='closed')clearInterval(w)},300);setTimeout(()=>clearInterval(w),20000);
+    conn.on('open',()=>flog('gsm verbonden'));conn.on('error',e=>flog('gsm-fout: '+(e.type||'')+' '+(e.message||'')));
     conn.on('data',m=>fMsg(conn,m));
     conn.on('close',()=>{const p=F.players.find(x=>x.conn===conn);if(p){p.gone=true;p.in=0;if(F.phase==='lobby')F.players=F.players.filter(x=>x!==p);fPanel()}});
   });
@@ -1524,7 +1532,7 @@ function fPanel(){
      <div>${F.players.map(p=>`<div class="who" style="padding:3px 0"><span class="dot" style="background:${p.c}"></span><span>${esc(p.nm)}</span></div>`).join('')||'<p class="small">Nog geen fietsers. Maximum 4.</p>'}</div>
      <button class="btn" id="fgo">${F.players.length?'Vertrek aan de Sint-Pietersabdij':'Start met de pijltjes'}</button>
      <button class="btn alt" id="fkey2">Tweede fietser op A en D</button>
-     <p class="small">Voor 18+. Water of frisdrank telt net zo goed. Dit is een spel: fiets in het echt niet na het drinken.</p></div>${help}`;
+     <p class="small">Voor 18+. Water of frisdrank telt net zo goed. Dit is een spel: fiets in het echt niet na het drinken.</p></div>${help}<div class="plate"><details><summary>Verbindingslog</summary><pre class="fnetlog" id="fnetlog">${esc((F.log||[]).join('\n'))}</pre></details></div>`;
     on('fgo',fStart);on('fkey2',()=>{if(!F.players.length)fAdd('key1','Pijltjes',null);if(!F.players.some(p=>p.key==='key2'))fAdd('key2','Toetsen',null);fPanel()});
   }else if(F.phase==='play'){
     el.innerHTML=`<div class="plate"><h2>Testrit: lege straat</h2><div id="ftable">${fTable()}</div></div>${help}`;
@@ -1731,27 +1739,58 @@ function stuurJoin(code){
     stuurConnect(code,nm);
   });
 }
-function stuurStep(t){const e=document.getElementById('ststep');if(e)e.textContent=t}
+const ERR={
+ 'peerjs-niet-geladen':'De verbindingscode kon niet laden. Je internet of een blokkering houdt ze tegen.',
+ 'browser-incompatible':'Deze browser ondersteunt geen rechtstreekse verbinding. Open de link in Safari of Chrome.',
+ 'webrtc':'De browser kon geen rechtstreekse verbinding starten.',
+ 'network':'De verbindingsserver is niet bereikbaar. Je netwerk blokkeert hem of hij ligt tijdelijk plat.',
+ 'socket-error':'De verbinding met de server viel weg.','socket-closed':'De verbinding met de server is gesloten.',
+ 'server-error':'De verbindingsserver gaf een fout. Hij kan tijdelijk overbelast zijn.','disconnected':'De verbinding met de server viel weg.',
+ 'peer-unavailable':'De tafel is niet gevonden. Staat de wachtruimte nog open op het grote scherm? Scan dan de code die daar nu staat.',
+ 'timeout-server':'De verbindingsserver antwoordt niet binnen 12 seconden.',
+ 'timeout-gsm-naar-tafel':'De server werkt en de tafel is gevonden, maar je gsm en het grote scherm geraken niet rechtstreeks bij elkaar. Vaak blokkeert het netwerk dat, zoals schoolwifi. Zet beide toestellen op hetzelfde wifi of op een hotspot.',
+ 'timeout-aanmelden':'De verbinding staat, maar het grote scherm antwoordt niet. Ververs de pagina op het grote scherm.',
+ 'ice-failed':'Je gsm en het grote scherm geraken niet rechtstreeks bij elkaar. Vaak blokkeert het netwerk dat. Zet beide toestellen op hetzelfde wifi of op een hotspot.',
+ 'gesloten':'De verbinding met de tafel is verbroken.'
+};
+S.t0=performance.now();S.log=[];
+function slog(t){const l=((performance.now()-S.t0)/1000).toFixed(1)+'s '+t;S.log.push(l);if(S.log.length>40)S.log.shift();const e=document.getElementById('stlog');if(e)e.textContent=S.log.join('\n')}
+function stuurInfo(){const c=navigator.connection;return'browser: '+navigator.userAgent.slice(0,110)+'\nnetwerk: '+(navigator.onLine?'online':'offline')+(c&&c.effectiveType?' '+c.effectiveType:'')+'\npagina: '+location.href.slice(0,70)}
+function stuurStep(t){const e=document.getElementById('ststep');if(e)e.textContent=t;slog(t)}
 function stuurConnect(code,nm,tries=0){
-  stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel...</p><p class="small" id="ststep">Server zoeken${tries?' (poging '+(tries+1)+')':''}</p></div>`);
-  if(!window.Peer)return stuurFail('De verbinding kon niet laden. Controleer je internet.','peerjs-niet-geladen');
-  const peer=new Peer();let done=false;
-  const again=(why)=>{if(done)return;done=true;clearTimeout(fail);try{peer.destroy()}catch(e){}
-    if(tries<3)setTimeout(()=>stuurConnect(code,nm,tries+1),1500);
-    else stuurFail(why==='peer-unavailable'?'De tafel met code '+code.toUpperCase()+' is niet gevonden. Staat de wachtruimte open op het grote scherm? Scan dan de code die daar nu staat.':'Geen verbinding met de tafel. Probeer hetzelfde wifi als het grote scherm.',why)};
-  const fail=setTimeout(()=>again('timeout-'+(S.stage||'server')),12000);
+  stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel ${esc(code.toUpperCase())}...</p><p class="small" id="ststep"></p><pre class="stlog" id="stlog"></pre></div>`);
+  stuurStep('Poging '+(tries+1)+' van 4: server zoeken');
+  if(!window.Peer)return stuurFail('peerjs-niet-geladen');
+  let peer;try{peer=new Peer()}catch(e){return stuurFail('webrtc',e.message)}
+  let done=false,ice='';
+  const stop=()=>{clearTimeout(fail);clearInterval(watch)};
+  const again=(why,detail)=>{if(done)return;done=true;stop();slog('fout: '+why+(detail?' ('+detail+')':''));try{peer.destroy()}catch(e){}
+    if(tries<3)setTimeout(()=>stuurConnect(code,nm,tries+1),1500);else stuurFail(why,detail)};
+  const fail=setTimeout(()=>again('timeout-'+S.stage),12000);
+  const watch=setInterval(()=>{const pc=S.conn&&S.conn.peerConnection;if(!pc)return;const st=pc.iceConnectionState;if(st!==ice){ice=st;slog('netwerkpad: '+st);if(st==='failed')again('ice-failed')}},300);
   S.stage='server';
-  peer.on('error',e=>again(e.type||'onbekend'));
-  peer.on('open',()=>{
+  peer.on('error',e=>again(e.type||'onbekend',e.message));
+  peer.on('disconnected',()=>{if(!done)slog('server: verbinding weg')});
+  peer.on('open',id=>{
     S.stage='gsm-naar-tafel';stuurStep('Server gevonden, tafel zoeken');
     const conn=peer.connect('spelcafe-fiets-'+code,{serialization:'json'});S.conn=conn;
     conn.on('open',()=>{S.stage='aanmelden';stuurStep('Tafel gevonden, aanmelden');conn.send({j:nm})});
-    conn.on('data',m=>{if(!done){done=true;clearTimeout(fail)}stuurData(m)});
-    conn.on('error',e=>again('verbinding-'+(e.type||'fout')));
-    conn.on('close',()=>{if(done)stuurFail('De verbinding met de tafel is verbroken.','gesloten');else again('gesloten')});
+    conn.on('data',m=>{if(!done){done=true;stop();slog('aangemeld')}stuurData(m)});
+    conn.on('error',e=>again('webrtc',e.type+' '+e.message));
+    conn.on('close',()=>{if(done)stuurFail('gesloten');else again('gesloten')});
   });
 }
-function stuurFail(t,code){clearInterval(S.timer);cancelAnimationFrame(S.raf);S.fixed=false;S.played=0;document.getElementById('stuur').removeAttribute('style');stuurScreen(`<div class="st"><p class="stline">${esc(t)}</p>${code?`<p class="small">Foutcode: ${esc(code)}</p>`:''}<button class="btn" id="stretry">Opnieuw verbinden</button></div>`);document.getElementById('stretry').addEventListener('click',()=>location.reload())}
+function stuurFail(t,detail){
+  clearInterval(S.timer);cancelAnimationFrame(S.raf);S.fixed=false;S.played=0;document.getElementById('stuur').removeAttribute('style');
+  const known=ERR[t],txt=known||t,code=known?t:'';if(detail)slog('details: '+detail);
+  const rep=()=>[code&&'foutcode: '+code,...S.log,stuurInfo()].filter(Boolean).join('\n');
+  stuurScreen(`<div class="st"><p class="stlogo" style="font-size:22px">Niet verbonden</p><p class="stline">${esc(txt)}</p>${code?`<p class="small">Foutcode: ${esc(code)}</p>`:''}<button class="btn" id="stretry">Opnieuw verbinden</button><button class="btn alt" id="stcopy">Details kopiëren</button><pre class="stlog" id="stlog">${esc(rep())}</pre></div>`);
+  document.getElementById('stretry').addEventListener('click',()=>location.reload());
+  document.getElementById('stcopy').addEventListener('click',e=>{const b=e.currentTarget;navigator.clipboard.writeText(rep()).then(()=>{b.textContent='Gekopieerd'}).catch(()=>{b.textContent='Selecteer de tekst hieronder';const r=document.createRange();r.selectNodeContents(document.getElementById('stlog'));const q=getSelection();q.removeAllRanges();q.addRange(r)})});
+}
+const stuurCrash=m=>{if(!location.hash.startsWith('#stuur-'))return;slog('programmafout: '+m);let e=document.getElementById('stcrash');if(!e){e=document.createElement('div');e.id='stcrash';e.className='stcrash';document.getElementById('stuur').appendChild(e)}e.textContent='Programmafout: '+m};
+addEventListener('error',e=>stuurCrash((e.message||'onbekend')+' @'+(e.lineno||0)+':'+(e.colno||0)));
+addEventListener('unhandledrejection',e=>stuurCrash(String(e.reason&&e.reason.message||e.reason)));
 document.addEventListener('visibilitychange',async()=>{if(document.visibilityState==='visible'&&S.lock)try{S.lock=await navigator.wakeLock.request('screen')}catch(e){}});
 function stuurData(m){
   if(m.full)return stuurFail(m.full);
