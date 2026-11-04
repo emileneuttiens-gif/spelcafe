@@ -1315,8 +1315,30 @@ function fNet(){
   if(F.net)return;F.net=true;
   const ok=/github\.io$/.test(location.hostname)||window.__fietsTest;
   if(!ok||!window.Peer){F.status='Dit scherm kan geen gsm koppelen. Open de GitHub-link van Spelcafé, of speel met de toetsen.';F.offline=true;return}
-  fPeer();
+  fPeer();fRelay();
   setInterval(()=>{const q=F.peer;if(!q)return;if(q.destroyed)fPeer();else if(q.disconnected)try{q.reconnect()}catch(e){}},4000);
+}
+/* Reserveroute: als de rechtstreekse verbinding mislukt, loopt het stuursignaal via een openbare MQTT-server */
+const BROKERS=window.__brokers||['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081/mqtt'];
+const MQTTJS='https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js';
+const mqttLoad=()=>window.mqtt?Promise.resolve():new Promise((ok,no)=>{const e=document.createElement('script');e.src=MQTTJS;e.onload=ok;e.onerror=()=>no(new Error('mqtt laadt niet'));document.head.appendChild(e)});
+const rTop=c=>'spelcafe/fiets/'+c;
+function fRelay(){
+  if(F.relays){F.relays.forEach(c=>{if(c.connected)c.subscribe(rTop(F.code)+'/tv')});return}
+  F.relays=[];F.rconn={};
+  mqttLoad().then(()=>BROKERS.forEach(url=>{
+    const c=mqtt.connect(url,{clientId:'tv'+Math.random().toString(36).slice(2,10),reconnectPeriod:5000,connectTimeout:6000});F.relays.push(c);
+    const host=url.split('/')[2];
+    c.on('connect',()=>{flog('reserveroute klaar: '+host);c.subscribe(rTop(F.code)+'/tv')});
+    c.on('error',e=>flog('reserveroute fout '+host+': '+e.message));
+    c.on('message',(t,b)=>{
+      if(t!==rTop(F.code)+'/tv')return;let d;try{d=JSON.parse(b.toString())}catch(e){return}
+      if(!d||typeof d.f!=='string'||d.f.length>24)return;
+      const k=host+d.f;let conn=F.rconn[k];
+      if(!conn){const code=F.code;conn=F.rconn[k]={peer:d.f,open:true,relay:true,send:m=>c.publish(rTop(code)+'/ph/'+d.f,JSON.stringify(m))};flog('gsm via reserveroute: '+host)}
+      fMsg(conn,d.m);
+    });
+  })).catch(e=>flog('reserveroute: '+e.message));
 }
 function flog(t){F.log=F.log||[];F.log.unshift(new Date().toLocaleTimeString('nl-BE')+' '+t);F.log.length=Math.min(F.log.length,12);const e=document.getElementById('fnetlog');if(e)e.textContent=F.log.join('\n')}
 function fPeer(){
@@ -1329,7 +1351,7 @@ function fPeer(){
     if(peer!==F.peer)return;
     flog('fout: '+(e.type||'onbekend')+' '+(e.message||''));
     if(e.type==='peer-unavailable')return;
-    if(e.type==='unavailable-id'){F.code=Math.random().toString(36).replace(/[^a-z]/g,'').slice(0,4).padEnd(4,'x');F.status='Nieuwe code aangemaakt.';setTimeout(fPeer,300);fPanel();return}
+    if(e.type==='unavailable-id'){F.code=Math.random().toString(36).replace(/[^a-z]/g,'').slice(0,4).padEnd(4,'x');F.status='Nieuwe code aangemaakt.';setTimeout(()=>{fPeer();fRelay()},300);fPanel();return}
     F.status='Server niet bereikt ('+(e.type||'fout')+'). Nieuwe poging bezig.';fPanel();
     if(!peer.destroyed&&peer.disconnected)return;
     setTimeout(()=>{if(peer===F.peer&&!peer.open)fPeer()},3000);
@@ -1751,7 +1773,8 @@ const ERR={
  'timeout-gsm-naar-tafel':'De server werkt en de tafel is gevonden, maar je gsm en het grote scherm geraken niet rechtstreeks bij elkaar. Vaak blokkeert het netwerk dat, zoals schoolwifi. Zet beide toestellen op hetzelfde wifi of op een hotspot.',
  'timeout-aanmelden':'De verbinding staat, maar het grote scherm antwoordt niet. Ververs de pagina op het grote scherm.',
  'ice-failed':'Je gsm en het grote scherm geraken niet rechtstreeks bij elkaar. Vaak blokkeert het netwerk dat. Zet beide toestellen op hetzelfde wifi of op een hotspot.',
- 'gesloten':'De verbinding met de tafel is verbroken.'
+ 'gesloten':'De verbinding met de tafel is verbroken.',
+ 'relay-mislukt':'Rechtstreeks verbinden lukt niet en ook de reserveroute via internet is niet bereikbaar. Controleer je internet en ververs de pagina op het grote scherm.'
 };
 S.t0=performance.now();S.log=[];
 function slog(t){const l=((performance.now()-S.t0)/1000).toFixed(1)+'s '+t;S.log.push(l);if(S.log.length>40)S.log.shift();const e=document.getElementById('stlog');if(e)e.textContent=S.log.join('\n')}
@@ -1759,19 +1782,19 @@ function stuurInfo(){const c=navigator.connection;return'browser: '+navigator.us
 function stuurStep(t){const e=document.getElementById('ststep');if(e)e.textContent=t;slog(t)}
 function stuurConnect(code,nm,tries=0){
   stuurScreen(`<div class="st"><p class="stline">Verbinden met de tafel ${esc(code.toUpperCase())}...</p><p class="small" id="ststep"></p><pre class="stlog" id="stlog"></pre></div>`);
-  stuurStep('Poging '+(tries+1)+' van 4: server zoeken');
-  if(!window.Peer)return stuurFail('peerjs-niet-geladen');
-  let peer;try{peer=new Peer()}catch(e){return stuurFail('webrtc',e.message)}
+  stuurStep('Rechtstreeks verbinden');
+  if(!window.Peer)return stuurRelay(code,nm,0);
+  let peer;try{peer=new Peer()}catch(e){slog('webrtc: '+e.message);return stuurRelay(code,nm,0)}
   let done=false,ice='';
   const stop=()=>{clearTimeout(fail);clearInterval(watch)};
-  const again=(why,detail)=>{if(done)return;done=true;stop();slog('fout: '+why+(detail?' ('+detail+')':''));try{peer.destroy()}catch(e){}
-    if(tries<3)setTimeout(()=>stuurConnect(code,nm,tries+1),1500);else stuurFail(why,detail)};
-  const fail=setTimeout(()=>again('timeout-'+S.stage),12000);
+  const again=(why,detail)=>{if(done)return;done=true;stop();slog('rechtstreeks mislukt: '+why+(detail?' ('+detail+')':''));try{peer.destroy()}catch(e){}S.conn=null;
+    if(why==='peer-unavailable'&&tries<1)setTimeout(()=>stuurConnect(code,nm,tries+1),1200);else stuurRelay(code,nm,0)};
+  const fail=setTimeout(()=>again('timeout-'+S.stage),7000);
   const watch=setInterval(()=>{const pc=S.conn&&S.conn.peerConnection;if(!pc)return;const st=pc.iceConnectionState;if(st!==ice){ice=st;slog('netwerkpad: '+st);if(st==='failed')again('ice-failed')}},300);
   S.stage='server';
   peer.on('error',e=>again(e.type||'onbekend',e.message));
   peer.on('disconnected',()=>{if(!done)slog('server: verbinding weg')});
-  peer.on('open',id=>{
+  peer.on('open',()=>{
     S.stage='gsm-naar-tafel';stuurStep('Server gevonden, tafel zoeken');
     const conn=peer.connect('spelcafe-fiets-'+code,{serialization:'json'});S.conn=conn;
     conn.on('open',()=>{S.stage='aanmelden';stuurStep('Tafel gevonden, aanmelden');conn.send({j:nm})});
@@ -1779,6 +1802,20 @@ function stuurConnect(code,nm,tries=0){
     conn.on('error',e=>again('webrtc',e.type+' '+e.message));
     conn.on('close',()=>{if(done)stuurFail('gesloten');else again('gesloten')});
   });
+}
+function stuurRelay(code,nm,i){
+  if(i>=BROKERS.length)return stuurFail('relay-mislukt');
+  const host=BROKERS[i].split('/')[2],id=Math.random().toString(36).slice(2,12);
+  stuurStep('Reserveroute proberen: '+host);
+  mqttLoad().then(()=>{
+    let joined=false,c;
+    const t=setTimeout(()=>{if(joined)return;slog('reserveroute geen antwoord: '+host);try{c.end(true)}catch(e){}stuurRelay(code,nm,i+1)},6000);
+    c=mqtt.connect(BROKERS[i],{clientId:'ph'+id,reconnectPeriod:joined?2000:0,connectTimeout:5000});
+    const pub=m=>c.publish(rTop(code)+'/tv',JSON.stringify({f:id,m}));
+    c.on('connect',()=>{c.subscribe(rTop(code)+'/ph/'+id,()=>{S.conn={open:true,relay:true,send:pub};stuurStep('Reserveroute open, aanmelden');pub({j:nm})})});
+    c.on('error',e=>slog('reserveroute fout: '+e.message));
+    c.on('message',(tp,b)=>{let m;try{m=JSON.parse(b.toString())}catch(e){return}if(!joined){joined=true;clearTimeout(t);slog('aangemeld via reserveroute')}stuurData(m)});
+  }).catch(e=>{slog('reserveroute: '+e.message);stuurFail('relay-mislukt',e.message)});
 }
 function stuurFail(t,detail){
   clearInterval(S.timer);cancelAnimationFrame(S.raf);S.fixed=false;S.played=0;document.getElementById('stuur').removeAttribute('style');
@@ -1853,7 +1890,7 @@ function stuurPlay(){
   document.getElementById('stset').addEventListener('click',stuurSheet);
   document.getElementById('stcentre').addEventListener('click',()=>{S.zero=S.rawDeg||0;stuurMsg('Stuur gecentreerd','',0,900);try{navigator.vibrate&&navigator.vibrate(15)}catch(x){}});
   stuurFix();clearInterval(S.timer);cancelAnimationFrame(S.raf);S.raf=requestAnimationFrame(stuurTick);
-  S.timer=setInterval(()=>{if(S.conn&&S.conn.open)try{S.conn.send({s:[+(S.x||0).toFixed(3)]})}catch(e){}},33);
+  S.tick=0;S.timer=setInterval(()=>{if(!S.conn||!S.conn.open)return;const v=+(S.x||0).toFixed(2);if(S.conn.relay){S.tick++;if(S.tick%2)return;if(v===S.sent&&S.tick%12)return;S.sent=v}try{S.conn.send({s:[v]})}catch(e){}},33);
 }
 function scrAngle(){const a=(screen.orientation&&typeof screen.orientation.angle==='number')?screen.orientation.angle:(window.orientation||0);return((a%360)+360)%360}
 function stuurFix(){

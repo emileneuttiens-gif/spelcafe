@@ -12,3 +12,5 @@ Open `index.html` in een browser of zet GitHub Pages aan op de branch `main`.
 Zatte Tuk-Tuk is een onofficiële fanversie, geïnspireerd op het bordspel Tuk-Tuk Taxi. Spelcafé heeft geen band met Bar des Amis of andere genoemde zaken.
 
 Straten en gebouwvormen in Dronken fietsen: © OpenStreetMap-bijdragers, beschikbaar onder de Open Database License (https://www.openstreetmap.org/copyright).
+
+Reserveroute: lukt de rechtstreekse verbinding niet, dan lopen naam en stuurwaarden via een openbare MQTT-server (HiveMQ, EMQX of Mosquitto).
