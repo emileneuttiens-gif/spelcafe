@@ -1319,7 +1319,7 @@ function fPeer(){
   F.status='Tafel wordt klaargezet.';fPanel();
   const peer=new Peer('spelcafe-fiets-'+F.code);F.peer=peer;
   peer.on('open',()=>{F.status='Klaar: scan de code met je gsm.';fPanel()});
-  peer.on('disconnected',()=>{F.status='Verbinding met de server even weg, wordt hersteld.';fPanel()});
+  peer.on('disconnected',()=>{F.status='Verbinding met de server even weg, wordt hersteld.';fPanel();setTimeout(()=>{if(peer===F.peer&&!peer.destroyed&&peer.disconnected)try{peer.reconnect()}catch(e){}},800)});
   peer.on('error',e=>{
     if(peer!==F.peer)return;
     if(e.type==='peer-unavailable')return;
